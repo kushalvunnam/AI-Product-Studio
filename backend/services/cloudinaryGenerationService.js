@@ -1,7 +1,7 @@
 const fetch = global.fetch;
 
 const generateImageWithRetry = async (payload, authHeader, maxRetries = 3) => {
-  const endpoint = \`https://api.cloudinary.com/v2/generate/\${process.env.CLOUDINARY_CLOUD_NAME}/image_to_image\`;
+  const endpoint = `https://api.cloudinary.com/v2/generate/${process.env.CLOUDINARY_CLOUD_NAME}/image_to_image`;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     const controller = new AbortController();
@@ -28,7 +28,7 @@ const generateImageWithRetry = async (payload, authHeader, maxRetries = 3) => {
 
       // Handle errors
       const errorData = await response.json().catch(() => ({}));
-      const errorMessage = errorData.error?.message || \`HTTP \${response.status}\`;
+      const errorMessage = errorData.error?.message || `HTTP ${response.status}`;
 
       // Check if error is transient (429 Too Many Requests, or 5xx server errors)
       // "Generation limit exceeded" is usually 400 or 403, but let's check text as well
@@ -40,7 +40,7 @@ const generateImageWithRetry = async (payload, authHeader, maxRetries = 3) => {
 
       // Exponential backoff with jitter
       const delay = Math.min(1000 * Math.pow(2, attempt - 1) + Math.random() * 500, 10000);
-      console.log(\`Cloudinary rate limit/transient error (\${response.status}). Retrying in \${Math.round(delay)}ms... (Attempt \${attempt}/\${maxRetries})\`);
+      console.log(`Cloudinary rate limit/transient error (${response.status}). Retrying in ${Math.round(delay)}ms... (Attempt ${attempt}/${maxRetries})`);
       await new Promise(res => setTimeout(res, delay));
       
     } catch (error) {
@@ -52,7 +52,7 @@ const generateImageWithRetry = async (payload, authHeader, maxRetries = 3) => {
         }
         // Timeout is considered transient, retry
         const delay = Math.min(1000 * Math.pow(2, attempt - 1) + Math.random() * 500, 10000);
-        console.log(\`Cloudinary timeout. Retrying in \${Math.round(delay)}ms... (Attempt \${attempt}/\${maxRetries})\`);
+        console.log(`Cloudinary timeout. Retrying in ${Math.round(delay)}ms... (Attempt ${attempt}/${maxRetries})`);
         await new Promise(res => setTimeout(res, delay));
         continue;
       }
@@ -93,7 +93,7 @@ const generateImage = async ({ prompt, referenceAsset, model, settings }) => {
     payload.model = { mode: 'auto', preference: model.preference || 'balanced' };
   }
 
-  const authHeader = 'Basic ' + Buffer.from(\`\${apiKey}:\${apiSecret}\`).toString('base64');
+  const authHeader = 'Basic ' + Buffer.from(`${apiKey}:${apiSecret}`).toString('base64');
   
   try {
     const data = await generateImageWithRetry(payload, authHeader);
