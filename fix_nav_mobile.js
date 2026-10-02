@@ -1,4 +1,33 @@
-import React from 'react';
+const fs = require('fs');
+
+// Layout.jsx
+const layoutJsx = `import React, { useState } from 'react';
+import { Outlet } from 'react-router-dom';
+import Sidebar from './Sidebar';
+import Navbar from './Navbar';
+
+const Layout = () => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  return (
+    <div className="flex h-screen overflow-hidden bg-background">
+      <Sidebar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
+      <div className="flex flex-col flex-1 overflow-hidden min-w-0">
+        <Navbar setMobileMenuOpen={setMobileMenuOpen} />
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 lg:p-8">
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  );
+};
+
+export default Layout;
+`;
+fs.writeFileSync('frontend/src/components/Layout.jsx', layoutJsx);
+
+// Sidebar.jsx
+const sidebarJsx = `import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -36,7 +65,7 @@ const Sidebar = ({ mobileMenuOpen, setMobileMenuOpen }) => {
 
       {/* Sidebar Content */}
       <aside 
-        className={`fixed inset-y-0 left-0 z-50 w-[280px] max-w-[85vw] flex-shrink-0 border-r border-slate-800 bg-surface/95 backdrop-blur-xl flex flex-col transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={\`fixed inset-y-0 left-0 z-50 w-[280px] max-w-[85vw] flex-shrink-0 border-r border-slate-800 bg-surface/95 backdrop-blur-xl flex flex-col transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 \${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}\`}
       >
         <div className="h-16 flex items-center justify-between px-6 border-b border-slate-800 shrink-0">
           <div className="flex items-center gap-2 text-primary-400">
@@ -46,7 +75,7 @@ const Sidebar = ({ mobileMenuOpen, setMobileMenuOpen }) => {
           <button 
             className="md:hidden text-slate-400 hover:text-white p-2 -mr-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg"
             onClick={() => setMobileMenuOpen(false)}
-            aria-label="Close navigation" aria-expanded={mobileMenuOpen}
+            aria-label="Close navigation"
           >
             <X className="w-6 h-6" />
           </button>
@@ -61,11 +90,11 @@ const Sidebar = ({ mobileMenuOpen, setMobileMenuOpen }) => {
                 to={item.path}
                 onClick={() => setMobileMenuOpen(false)}
                 className={({ isActive }) => 
-                  `flex items-center gap-3 px-3 py-3.5 md:py-2.5 rounded-lg transition-all duration-200 min-h-[44px] ${
+                  \`flex items-center gap-3 px-3 py-3.5 md:py-2.5 rounded-lg transition-all duration-200 min-h-[44px] \${
                     isActive 
                       ? 'bg-primary-500/10 text-primary-400' 
                       : 'text-slate-400 hover:bg-surfaceHighlight hover:text-slate-200'
-                  }`
+                  }\`
                 }
               >
                 <Icon className="w-5 h-5 shrink-0" />
@@ -92,3 +121,27 @@ const Sidebar = ({ mobileMenuOpen, setMobileMenuOpen }) => {
 };
 
 export default Sidebar;
+`;
+fs.writeFileSync('frontend/src/components/Sidebar.jsx', sidebarJsx);
+
+// Navbar.jsx
+let navbarJsx = fs.readFileSync('frontend/src/components/Navbar.jsx', 'utf8');
+navbarJsx = navbarJsx.replace('const Navbar = () => {', 'const Navbar = ({ setMobileMenuOpen }) => {');
+navbarJsx = navbarJsx.replace(
+  '<button className="md:hidden text-slate-400 hover:text-white">',
+  '<button className="md:hidden text-slate-400 hover:text-white p-2 -ml-2 min-w-[44px] min-h-[44px] flex items-center justify-center" onClick={() => setMobileMenuOpen(true)} aria-label="Open navigation" aria-expanded="false">'
+);
+navbarJsx = navbarJsx.replace(
+  '<Menu className="w-6 h-6" />\n        </button>',
+  '<Menu className="w-6 h-6" />\n        </button>\n        <span className="md:hidden font-bold text-lg text-white tracking-tight flex items-center gap-1">ProductStudio<span className="text-primary-500">AI</span></span>'
+);
+
+// Mobile notification bell panel right adjustment
+navbarJsx = navbarJsx.replace(
+  'className="absolute right-0 mt-2 w-80 bg-surface border',
+  'className="absolute right-0 md:right-0 -mr-4 md:mr-0 mt-2 w-[calc(100vw-2rem)] max-w-sm md:w-80 bg-surface border'
+);
+
+fs.writeFileSync('frontend/src/components/Navbar.jsx', navbarJsx);
+
+console.log('Mobile navigation fixed');

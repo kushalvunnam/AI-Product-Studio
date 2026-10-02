@@ -3,7 +3,7 @@ import { Search, Bell, Plus, Menu, CheckCircle2, XCircle, Clock } from 'lucide-r
 import { Link } from 'react-router-dom';
 import { getCampaigns } from '../services/campaignService';
 
-const Navbar = () => {
+const Navbar = ({ mobileMenuOpen, setMobileMenuOpen }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -79,9 +79,10 @@ const Navbar = () => {
   return (
     <header className="h-16 flex items-center justify-between px-4 md:px-6 border-b border-slate-800 bg-surface/30 backdrop-blur-md sticky top-0 z-50">
       <div className="flex items-center gap-4">
-        <button className="md:hidden text-slate-400 hover:text-white">
+        <button className="md:hidden text-slate-400 hover:text-white p-2 -ml-2 min-w-[44px] min-h-[44px] flex items-center justify-center" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label={mobileMenuOpen ? "Close navigation" : "Open navigation"} aria-expanded={mobileMenuOpen}>
           <Menu className="w-6 h-6" />
         </button>
+        <span className="md:hidden font-bold text-lg text-white tracking-tight flex items-center gap-1">ProductStudio<span className="text-primary-500">AI</span></span>
         
         <div className="relative hidden sm:block w-64 md:w-80">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -108,7 +109,7 @@ const Navbar = () => {
           </button>
           
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-80 bg-surface border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50 animate-in slide-in-from-top-2">
+            <div className="absolute right-0 md:right-0 -mr-4 md:mr-0 mt-2 w-[calc(100vw-2rem)] max-w-sm md:w-80 bg-surface border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50 animate-in slide-in-from-top-2">
               <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
                 <h3 className="font-bold text-white">Notifications</h3>
                 {unreadCount > 0 && (
