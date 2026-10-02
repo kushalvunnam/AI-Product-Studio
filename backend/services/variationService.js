@@ -9,7 +9,10 @@ const generateVariations = async ({ sourceImage, analysis, creativeBrief, model,
   // We'll just pick the first 'count' strategies for simplicity, or select dynamically
   const selectedStrategies = variationStrategies.slice(0, count);
 
-  const promises = selectedStrategies.map(async (strategy) => {
+  const variations = [];
+  const failed = [];
+
+  for (const strategy of selectedStrategies) {
     try {
       const prompt = buildVariationPrompt({ analysis, creativeBrief, variationType: strategy.id });
       
@@ -20,7 +23,7 @@ const generateVariations = async ({ sourceImage, analysis, creativeBrief, model,
         settings: {}
       });
 
-      return {
+      variations.push({
         id: `var_${strategy.id}_${Date.now()}`,
         variationType: strategy.id,
         variationName: strategy.name,
@@ -31,29 +34,16 @@ const generateVariations = async ({ sourceImage, analysis, creativeBrief, model,
         width: asset.width || sourceImage.width,
         height: asset.height || sourceImage.height,
         format: asset.format || sourceImage.format
-      };
+      });
     } catch (error) {
       console.error(`Failed to generate variation ${strategy.name}:`, error);
-      throw {
+      failed.push({
         variationType: strategy.id,
         variationName: strategy.name,
         error: error.message
-      };
+      });
     }
-  });
-
-  const results = await Promise.allSettled(promises);
-  
-  const variations = [];
-  const failed = [];
-
-  results.forEach(result => {
-    if (result.status === 'fulfilled') {
-      variations.push(result.value);
-    } else {
-      failed.push(result.reason);
-    }
-  });
+  }
 
   return { variations, failed };
 };

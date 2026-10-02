@@ -111,11 +111,7 @@ export const generateCampaignVariations = async (data) => {
       body: JSON.stringify(data),
     });
 
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(result.message || 'Variation generation failed');
-    }
+    let result; try { result = await response.json(); } catch(e) { throw new Error('Cloudinary Generation Timeout/Error (500/504). Please try again.'); } if (!response.ok) { throw new Error(result.message || 'Variation generation failed'); }
 
     if (!result.success || !result.variations) {
       throw new Error('Invalid response from server');

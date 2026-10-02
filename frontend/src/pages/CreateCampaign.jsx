@@ -133,7 +133,7 @@ const CreateCampaign = () => {
       setIsGenerating(false);
     } catch (err) {
       setGenerationError(err.message || 'Generation failed.');
-      if (campaignId) await updateCampaign(campaignId, { status: 'failed' });
+      if (campaignId) { try { await updateCampaign(campaignId, { status: 'failed' }); } catch(e) {} }
       setIsGenerating(false);
     }
   };
@@ -348,7 +348,8 @@ const CreateCampaign = () => {
           <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
             <h2 className="text-xl font-bold text-white flex items-center gap-2"><Layers className="w-5 h-5 text-primary-400" /> Cloudinary AI Generation</h2>
             
-            {isGenerating && (
+            {generationError && (<div className="bg-red-500/10 border border-red-500 rounded-xl p-6 text-red-500 mb-8">{generationError}</div>)}
+              {isGenerating && (
               <div className="bg-surface border border-slate-700 rounded-xl p-8 max-w-md mx-auto my-12 shadow-xl relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-1 bg-slate-800"><div className="h-full bg-primary-500 animate-pulse" style={{ width: '100%' }}></div></div>
                 <div className="flex items-center gap-3 mb-6"><ImagePlus className="w-6 h-6 text-primary-400 animate-pulse" /><h3 className="text-lg font-bold text-white tracking-widest uppercase">Generation Pipeline</h3></div>
