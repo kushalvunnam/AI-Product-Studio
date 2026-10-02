@@ -51,44 +51,76 @@ const analyzeProductImage = async (imageUrl) => {
 }
 If a field cannot be reliably determined from the image, use "unknown" or an empty array. Do not hallucinate.`;
 
-    let result;
-    let attempts = 0;
-    const maxAttempts = 3;
-    let currentModelName = "gemini-flash-latest";
+    let responseText = '';
+    const provider = process.env.AI_PROVIDER || 'gemini';
 
-    while (attempts < maxAttempts) {
-      attempts++;
-      try {
-        const model = genAI.getGenerativeModel({ model: currentModelName });
-        result = await model.generateContent([prompt, imagePart]);
-        if (attempts > 1) {
-          console.log(`Gemini request succeeded on attempt ${attempts} using ${currentModelName}`);
-        }
-        break;
-      } catch (err) {
-        const isTransient = err.status === 503 || (err.message && (err.message.includes('503') || err.message.includes('temporarily') || err.message.includes('Service Unavailable') || err.message.includes('overloaded')));
-        
-        if (isTransient) {
-          console.error(`Gemini request attempt ${attempts} failed with 503 (${currentModelName})`);
+    if (provider === 'groq') {
+      if (!process.env.GROQ_API_KEY) throw new Error('GROQ_API_KEY is missing.');
+      const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "qwen/qwen3.6-27b",
+          messages: [
+            {
+              role: "user",
+              content: [
+                { type: "text", text: prompt },
+                { type: "image_url", image_url: { url: imageUrl } }
+              ]
+            }
+          ]
+        })
+      });
+      
+      const groqData = await groqResponse.json();
+      if (!groqResponse.ok) {
+        throw new Error(`Groq API Error: ${groqData.error?.message || groqResponse.statusText}`);
+      }
+      
+      responseText = groqData.choices[0].message.content;
+    } else {
+      let result;
+      let attempts = 0;
+      const maxAttempts = 3;
+      let currentModelName = "gemini-flash-latest";
+
+      while (attempts < maxAttempts) {
+        attempts++;
+        try {
+          const model = genAI.getGenerativeModel({ model: currentModelName });
+          result = await model.generateContent([prompt, imagePart]);
+          if (attempts > 1) {
+            console.log(`Gemini request succeeded on attempt ${attempts} using ${currentModelName}`);
+          }
+          break;
+        } catch (err) {
+          const isTransient = err.status === 503 || (err.message && (err.message.includes('503') || err.message.includes('temporarily') || err.message.includes('Service Unavailable') || err.message.includes('overloaded')));
           
-          if (attempts < maxAttempts) {
-            console.error('Retrying...');
-            const backoffTime = Math.pow(2, attempts - 1) * 1000 + Math.random() * 500;
-            await new Promise(resolve => setTimeout(resolve, backoffTime));
-          } else if (currentModelName === "gemini-flash-latest") {
-            console.error('All retries for gemini-flash-latest failed. Attempting fallback to gemini-3.7-flash.');
-            currentModelName = "gemini-3.7-flash";
-            attempts = 0; // Reset attempts for the fallback model
+          if (isTransient) {
+            console.error(`Gemini request attempt ${attempts} failed with 503 (${currentModelName})`);
+            
+            if (attempts < maxAttempts) {
+              console.error('Retrying...');
+              const backoffTime = Math.pow(2, attempts - 1) * 1000 + Math.random() * 500;
+              await new Promise(resolve => setTimeout(resolve, backoffTime));
+            } else if (currentModelName === "gemini-flash-latest") {
+              console.error('All retries for gemini-flash-latest failed. Attempting fallback to gemini-3.7-flash.');
+              currentModelName = "gemini-3.7-flash";
+              attempts = 0; // Reset attempts for the fallback model
+            } else {
+              throw err;
+            }
           } else {
             throw err;
           }
-        } else {
-          throw err;
         }
       }
+      responseText = result.response.text();
     }
-
-    const responseText = result.response.text();
     
     // Clean up response if model included markdown
     const cleanedText = responseText.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim();
