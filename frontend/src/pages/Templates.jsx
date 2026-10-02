@@ -21,8 +21,8 @@ const Templates = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {templates.map(t => (
-          <div key={t.id} className="bg-surface border border-slate-800 rounded-xl p-6 hover:border-primary-500/50 transition-colors group flex flex-col">
-            <div className="w-12 h-12 bg-slate-900 rounded-lg border border-slate-800 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+          <div key={t.id} className="glass-card p-6 group flex flex-col cursor-pointer">
+            <div className="w-12 h-12 bg-white/5 rounded-xl border border-white/10 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:border-primary/30 group-hover:shadow-neon transition-all">
               {t.icon}
             </div>
             <h3 className="text-xl font-bold text-slate-200 mb-2">{t.name}</h3>

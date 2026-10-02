@@ -134,7 +134,7 @@ const Assets = () => {
         <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
           <div className="flex items-center gap-2 text-sm">
             <Filter className="w-4 h-4 text-slate-400" />
-            <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-1.5 focus:ring-primary-500 focus:border-primary-500 outline-none">
+            <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="bg-white/5 border border-white/10 text-white rounded-lg px-3 py-1.5 focus:ring-primary focus:border-primary outline-none">
               <option value="all">All Asset Types</option>
               <option value="original">Original Products</option>
               <option value="ai-generated">AI Generated Variations</option>
@@ -144,7 +144,7 @@ const Assets = () => {
           
           <div className="flex items-center gap-2 text-sm">
             <LayoutTemplate className="w-4 h-4 text-slate-400" />
-            <select value={filterPlatform} onChange={(e) => setFilterPlatform(e.target.value)} className="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-1.5 focus:ring-primary-500 focus:border-primary-500 outline-none">
+            <select value={filterPlatform} onChange={(e) => setFilterPlatform(e.target.value)} className="bg-white/5 border border-white/10 text-white rounded-lg px-3 py-1.5 focus:ring-primary focus:border-primary outline-none">
               <option value="all">All Platforms</option>
               <option value="instagram">Instagram</option>
               <option value="story">Story</option>
@@ -162,14 +162,14 @@ const Assets = () => {
             placeholder="Search campaigns..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-700 text-white text-sm rounded-lg pl-9 pr-4 py-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+            className="w-full bg-white/5 border border-white/10 text-white text-sm rounded-lg pl-9 pr-4 py-2 focus:ring-primary focus:border-primary outline-none"
           />
         </div>
       </div>
 
       {filteredAssets.length === 0 ? (
         <div className="glass-panel p-16 flex flex-col items-center justify-center text-center">
-          <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mb-4 text-slate-500">
+          <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4 text-slate-500 shadow-inner">
             <ImageIcon className="w-8 h-8" />
           </div>
           <h3 className="text-xl font-bold text-white mb-2">No assets found</h3>
@@ -178,7 +178,7 @@ const Assets = () => {
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
           {filteredAssets.map((asset) => (
-            <div key={asset.id} className="bg-slate-900 rounded-xl overflow-hidden border border-slate-700 group hover:border-primary-500/50 transition-colors flex flex-col h-full">
+            <div key={asset.id} className="glass-card flex flex-col h-full group">
               
               <div className="relative aspect-square flex items-center justify-center bg-black/50 p-2 overflow-hidden">
                 <div className="absolute top-2 left-2 z-10 flex gap-1">
@@ -199,7 +199,7 @@ const Assets = () => {
                 </div>
               </div>
 
-              <div className="p-3 bg-surface border-t border-slate-800 flex flex-col flex-grow justify-between gap-2">
+              <div className="p-3 bg-white/5 border-t border-white/5 flex flex-col flex-grow justify-between gap-2">
                 <p className="text-sm font-semibold text-white truncate" title={asset.campaignName}>{asset.campaignName}</p>
                 <div className="flex items-center justify-between text-xs text-slate-400">
                   {asset.dimensions ? <span>{asset.dimensions}</span> : <span>{asset.modelUsed}</span>}

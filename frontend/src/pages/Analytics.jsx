@@ -28,8 +28,8 @@ const Analytics = () => {
   }, []);
 
   const StatCard = ({ title, value, icon, color }) => (
-    <div className="bg-surface border border-slate-800 rounded-xl p-6 flex items-center gap-4">
-      <div className={`w-12 h-12 rounded-lg flex items-center justify-center bg-slate-900 border border-slate-800 ${color}`}>
+    <div className="glass-card p-6 flex items-center gap-4 group hover:-translate-y-1">
+      <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-white/5 border border-white/10 group-hover:border-${color.replace("text-", "")}/30 ${color} shadow-sm group-hover:shadow-neon transition-all`}>
         {icon}
       </div>
       <div>
@@ -55,7 +55,7 @@ const Analytics = () => {
         <StatCard title="Success Rate" value={stats.total ? Math.round((stats.completed / stats.total) * 100) + '%' : '0%'} icon={<TrendingUp className="w-6 h-6" />} color="text-primary-400" />
       </div>
 
-      <div className="bg-surface border border-slate-800 rounded-xl p-8 flex flex-col items-center justify-center min-h-[300px]">
+      <div className="glass-panel p-8 flex flex-col items-center justify-center min-h-[300px]">
          <BarChart3 className="w-16 h-16 text-slate-700 mb-4" />
          <h3 className="text-xl font-bold text-slate-300">Detailed Charts Coming Soon</h3>
          <p className="text-slate-500 text-center max-w-md mt-2">More historical data is required to generate meaningful cohort analysis and conversion charts.</p>

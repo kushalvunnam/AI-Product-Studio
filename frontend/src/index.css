@@ -6,14 +6,14 @@
 
 @layer base {
   body {
-    @apply bg-background text-slate-100 font-sans;
+    @apply bg-background text-slate-100 font-sans antialiased;
   }
 }
 
 /* Custom scrollbar for webkit */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -21,14 +21,55 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 4px;
+  @apply bg-slate-800 rounded-full;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  @apply bg-slate-700;
 }
 
-.glass-panel {
-  @apply bg-surface/80 backdrop-blur-md border border-slate-700/50 rounded-xl shadow-lg;
+@layer components {
+  .glass-panel {
+    @apply bg-surface backdrop-blur-xl border border-white/5 rounded-[20px] shadow-glass;
+  }
+  
+  .glass-card {
+    @apply bg-surfaceSolid/60 backdrop-blur-lg border border-white/5 rounded-2xl shadow-glass hover:border-white/10 transition-colors duration-300 relative overflow-hidden;
+  }
+  
+  .btn-primary {
+    @apply bg-primary hover:bg-primary-400 text-slate-950 font-bold px-6 py-2.5 rounded-lg transition-all duration-300 shadow-neon hover:shadow-none active:scale-95 flex items-center justify-center gap-2;
+  }
+
+  .btn-secondary {
+    @apply bg-white/5 hover:bg-white/10 text-white border border-white/10 font-medium px-6 py-2.5 rounded-lg transition-all duration-300 active:scale-95 flex items-center justify-center gap-2;
+  }
+  
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400;
+  }
+  
+  .text-gradient-primary {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary-cyan;
+  }
+}
+
+/* Decorative background elements */
+.bg-glow-primary {
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(0,255,163,0.03) 0%, rgba(0,0,0,0) 70%);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+}
+.bg-glow-secondary {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(0,229,255,0.03) 0%, rgba(0,0,0,0) 70%);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
 }
