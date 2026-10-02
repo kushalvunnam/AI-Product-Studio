@@ -1,4 +1,10 @@
+const fs = require('fs');
+const path = require('path');
 
+const srcDir = path.join(__dirname, 'frontend', 'src');
+
+// 1. Rewrite index.css
+const indexCss = `
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
@@ -118,3 +124,8 @@
   pointer-events: none;
   z-index: 0;
 }
+`;
+
+fs.writeFileSync(path.join(srcDir, 'index.css'), indexCss);
+
+console.log('Finished updating CSS');

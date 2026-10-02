@@ -15,18 +15,18 @@ const Templates = () => {
   return (
     <div className="p-8 max-w-7xl mx-auto animate-in fade-in duration-500">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white tracking-tight">Marketing Templates</h1>
-        <p className="text-slate-400 mt-1">Jumpstart your campaign with pre-configured creative setups</p>
+        <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Marketing Templates</h1>
+        <p className="text-slate-500 mt-1">Jumpstart your campaign with pre-configured creative setups</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {templates.map(t => (
           <div key={t.id} className="glass-card p-6 group flex flex-col cursor-pointer">
-            <div className="w-12 h-12 bg-white/5 rounded-xl border border-white/10 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:border-primary/30 group-hover:shadow-neon transition-all">
+            <div className="w-12 h-12 bg-white shadow-sm rounded-xl border border-slate-200 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:border-primary/30 group-hover:shadow-md transition-all">
               {t.icon}
             </div>
-            <h3 className="text-xl font-bold text-slate-200 mb-2">{t.name}</h3>
-            <p className="text-sm text-slate-400 mb-4 flex-grow">{t.desc}</p>
+            <h3 className="text-xl font-bold text-slate-700 mb-2">{t.name}</h3>
+            <p className="text-sm text-slate-500 mb-4 flex-grow">{t.desc}</p>
             <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-800">
               <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{t.platform}</span>
               <button 

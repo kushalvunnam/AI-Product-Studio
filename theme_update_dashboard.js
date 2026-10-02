@@ -1,7 +1,12 @@
+const fs = require('fs');
+const path = require('path');
 
+const srcDir = path.join(__dirname, 'frontend', 'src');
+
+const dashboardJsx = `
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Sparkles, Layers, Image as ImageIcon, TrendingUp, ArrowRight, Wand2, Plus, CheckCircle2 } from 'lucide-react';
+import { Sparkles, Layers, Image as ImageIcon, TrendingUp, ArrowRight, Wand2, Plus } from 'lucide-react';
 import { getCampaigns } from '../services/campaignService';
 
 const Dashboard = () => {
@@ -145,3 +150,8 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+`;
+
+fs.writeFileSync(path.join(srcDir, 'pages', 'Dashboard.jsx'), dashboardJsx);
+
+console.log('Finished updating Dashboard');

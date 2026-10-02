@@ -78,13 +78,13 @@ const Analytics = () => {
 
   const StatCard = ({ title, value, icon, color }) => (
     <div className="glass-card p-6 flex items-center gap-4 group hover:-translate-y-1 transition-transform">
-      <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-white/5 border border-white/10 group-hover:border-${color.split("-")[1]}-500/30 ${color} shadow-sm group-hover:shadow-neon transition-all`}>
+      <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-white shadow-sm border border-slate-200 group-hover:border-${color.split("-")[1]}-500/30 ${color} shadow-sm group-hover:shadow-md transition-all`}>
         {icon}
       </div>
       <div>
-        <p className="text-sm font-medium text-slate-400">{title}</p>
-        <p className="text-2xl font-bold text-white">
-          {loading ? <div className="h-8 w-16 bg-white/10 animate-pulse rounded mt-1"></div> : value}
+        <p className="text-sm font-medium text-slate-500">{title}</p>
+        <p className="text-2xl font-bold text-slate-800">
+          {loading ? <div className="h-8 w-16 bg-slate-50 animate-pulse rounded mt-1"></div> : value}
         </p>
       </div>
     </div>
@@ -94,7 +94,7 @@ const Analytics = () => {
     return (
       <div className="p-8 max-w-7xl mx-auto flex flex-col items-center justify-center min-h-[60vh] text-center">
         <AlertCircle className="w-16 h-16 text-red-500 mb-4" />
-        <h2 className="text-2xl font-bold text-white mb-2">{error}</h2>
+        <h2 className="text-2xl font-bold text-slate-800 mb-2">{error}</h2>
         <button onClick={fetchStats} className="mt-4 px-6 py-2 bg-primary hover:bg-primary/90 text-black font-semibold rounded-lg transition-colors">
           Retry
         </button>
@@ -105,12 +105,12 @@ const Analytics = () => {
   if (!loading && stats && stats.total === 0) {
     return (
       <div className="p-8 max-w-7xl mx-auto flex flex-col items-center justify-center min-h-[60vh] text-center animate-in fade-in duration-500">
-        <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mb-6">
+        <div className="w-24 h-24 bg-white shadow-sm rounded-full flex items-center justify-center mb-6">
           <BarChart3 className="w-12 h-12 text-primary" />
         </div>
-        <h2 className="text-2xl font-bold text-white mb-2">No campaign data yet</h2>
-        <p className="text-slate-400 mb-8 max-w-md">Create your first campaign to start seeing analytics.</p>
-        <Link to="/create" className="px-6 py-3 bg-primary hover:bg-primary/90 text-black font-semibold rounded-lg shadow-neon transition-all">
+        <h2 className="text-2xl font-bold text-slate-800 mb-2">No campaign data yet</h2>
+        <p className="text-slate-500 mb-8 max-w-md">Create your first campaign to start seeing analytics.</p>
+        <Link to="/create" className="px-6 py-3 bg-primary hover:bg-primary/90 text-black font-semibold rounded-lg shadow-md transition-all">
           + Create Campaign
         </Link>
       </div>
@@ -148,8 +148,8 @@ const Analytics = () => {
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-slate-900 border border-white/10 p-3 rounded-lg shadow-xl">
-          <p className="text-white font-medium">{payload[0].name || payload[0].payload.name || payload[0].payload.date}</p>
+        <div className="bg-slate-900 border border-slate-200 p-3 rounded-lg shadow-xl">
+          <p className="text-slate-800 font-medium">{payload[0].name || payload[0].payload.name || payload[0].payload.date}</p>
           {payload.map((entry, index) => (
             <p key={index} style={{ color: entry.color }} className="text-sm font-bold">
               {entry.name}: {entry.value}
@@ -164,8 +164,8 @@ const Analytics = () => {
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto animate-in fade-in duration-500">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white tracking-tight">Performance Analytics</h1>
-        <p className="text-slate-400 mt-1">Overview of your marketing campaign generations</p>
+        <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Performance Analytics</h1>
+        <p className="text-slate-500 mt-1">Overview of your marketing campaign generations</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
@@ -179,17 +179,17 @@ const Analytics = () => {
 
       {loading ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <div className="glass-panel p-6 h-[400px] animate-pulse"></div>
-          <div className="glass-panel p-6 h-[400px] animate-pulse"></div>
-          <div className="glass-panel p-6 h-[400px] animate-pulse"></div>
+          <div className="glass-card p-6 h-[400px] animate-pulse"></div>
+          <div className="glass-card p-6 h-[400px] animate-pulse"></div>
+          <div className="glass-card p-6 h-[400px] animate-pulse"></div>
         </div>
       ) : (
         <>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
             
             {/* Campaign Status */}
-            <div className="glass-panel p-6 flex flex-col">
-              <h3 className="text-lg font-bold text-white mb-4">Campaign Status</h3>
+            <div className="glass-card p-6 flex flex-col">
+              <h3 className="text-lg font-bold text-slate-800 mb-4">Campaign Status</h3>
               <div className="flex-1 min-h-[250px] relative">
                 {campaignStatusData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
@@ -204,11 +204,11 @@ const Analytics = () => {
                   <div className="absolute inset-0 flex items-center justify-center text-slate-500">No Data</div>
                 )}
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <span className="text-sm text-slate-400">Total</span>
-                  <span className="text-2xl font-bold text-white">{stats.total}</span>
+                  <span className="text-sm text-slate-500">Total</span>
+                  <span className="text-2xl font-bold text-slate-800">{stats.total}</span>
                 </div>
               </div>
-              <div className="flex justify-center gap-4 mt-4 text-sm text-slate-300 flex-wrap">
+              <div className="flex justify-center gap-4 mt-4 text-sm text-slate-600 flex-wrap">
                 <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-emerald-500"></span> Completed</div>
                 <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-amber-500"></span> Processing</div>
                 <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-red-500"></span> Failed</div>
@@ -216,8 +216,8 @@ const Analytics = () => {
             </div>
 
             {/* Variation Generation */}
-            <div className="glass-panel p-6 flex flex-col">
-              <h3 className="text-lg font-bold text-white mb-4">Variation Generation</h3>
+            <div className="glass-card p-6 flex flex-col">
+              <h3 className="text-lg font-bold text-slate-800 mb-4">Variation Generation</h3>
               <div className="flex-1 min-h-[250px] relative">
                 {variationData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
@@ -232,11 +232,11 @@ const Analytics = () => {
                   <div className="absolute inset-0 flex items-center justify-center text-slate-500">No Data</div>
                 )}
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <span className="text-sm text-slate-400">Total</span>
-                  <span className="text-2xl font-bold text-white">{stats.totalVariations}</span>
+                  <span className="text-sm text-slate-500">Total</span>
+                  <span className="text-2xl font-bold text-slate-800">{stats.totalVariations}</span>
                 </div>
               </div>
-              <div className="flex justify-center gap-4 mt-4 text-sm text-slate-300 flex-wrap">
+              <div className="flex justify-center gap-4 mt-4 text-sm text-slate-600 flex-wrap">
                 <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-emerald-500"></span> Successful</div>
                 <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-amber-500"></span> Pending</div>
                 <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-red-500"></span> Failed</div>
@@ -244,11 +244,11 @@ const Analytics = () => {
             </div>
 
             {/* Success Rate Progress */}
-            <div className="glass-panel p-6 flex flex-col items-center justify-center">
-              <h3 className="text-lg font-bold text-white mb-6 self-start w-full">Success Rate</h3>
+            <div className="glass-card p-6 flex flex-col items-center justify-center">
+              <h3 className="text-lg font-bold text-slate-800 mb-6 self-start w-full">Success Rate</h3>
               <div className="relative w-48 h-48 flex items-center justify-center">
                 <svg className="w-full h-full transform -rotate-90">
-                  <circle cx="96" cy="96" r="45" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-white/5" />
+                  <circle cx="96" cy="96" r="45" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-800/5" />
                   <circle 
                     cx="96" cy="96" r="45" stroke="currentColor" strokeWidth="8" fill="transparent" 
                     className="text-primary transition-all duration-1000 ease-out" 
@@ -256,8 +256,8 @@ const Analytics = () => {
                   />
                 </svg>
                 <div className="absolute flex flex-col items-center justify-center">
-                  <span className="text-4xl font-bold text-white">{successRate}%</span>
-                  <span className="text-xs text-slate-400 uppercase tracking-wider mt-1">Success Rate</span>
+                  <span className="text-4xl font-bold text-slate-800">{successRate}%</span>
+                  <span className="text-xs text-slate-500 uppercase tracking-wider mt-1">Success Rate</span>
                 </div>
               </div>
             </div>
@@ -266,8 +266,8 @@ const Analytics = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             {/* Performance Bar Chart */}
-            <div className="glass-panel p-6">
-              <h3 className="text-lg font-bold text-white mb-6">Campaign Performance</h3>
+            <div className="glass-card p-6">
+              <h3 className="text-lg font-bold text-slate-800 mb-6">Campaign Performance</h3>
               <div className="h-[300px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={barData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
@@ -285,8 +285,8 @@ const Analytics = () => {
             </div>
 
             {/* Generation Activity */}
-            <div className="glass-panel p-6">
-              <h3 className="text-lg font-bold text-white mb-6">Generation Activity</h3>
+            <div className="glass-card p-6">
+              <h3 className="text-lg font-bold text-slate-800 mb-6">Generation Activity</h3>
               <div className="h-[300px] w-full">
                 {stats.activity.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
@@ -309,25 +309,25 @@ const Analytics = () => {
           </div>
 
           {/* Recent Generations Table */}
-          <div className="glass-panel p-0 overflow-hidden mb-8">
-            <div className="p-6 border-b border-white/5">
-              <h3 className="text-lg font-bold text-white">Recent Generations</h3>
+          <div className="glass-card p-0 overflow-hidden mb-8">
+            <div className="p-6 border-b border-slate-100">
+              <h3 className="text-lg font-bold text-slate-800">Recent Generations</h3>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-white/5">
-                    <th className="p-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Campaign</th>
-                    <th className="p-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
-                    <th className="p-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Variations</th>
-                    <th className="p-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Created</th>
+                  <tr className="bg-white shadow-sm">
+                    <th className="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Campaign</th>
+                    <th className="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                    <th className="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Variations</th>
+                    <th className="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Created</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {campaigns.slice(0, 5).map(c => (
-                    <tr key={c._id} className="hover:bg-white/5 transition-colors">
+                    <tr key={c._id} className="hover:bg-white shadow-sm transition-colors">
                       <td className="p-4">
-                        <div className="font-medium text-white">{c.name}</div>
+                        <div className="font-medium text-slate-800">{c.name}</div>
                         <div className="text-xs text-slate-500">{c._id.substring(0, 8)}</div>
                       </td>
                       <td className="p-4">
@@ -339,10 +339,10 @@ const Analytics = () => {
                           {c.status.charAt(0).toUpperCase() + c.status.slice(1)}
                         </span>
                       </td>
-                      <td className="p-4 text-sm text-slate-300">
+                      <td className="p-4 text-sm text-slate-600">
                         {c.variations?.length || 0}
                       </td>
-                      <td className="p-4 text-sm text-slate-300">
+                      <td className="p-4 text-sm text-slate-600">
                         {new Date(c.createdAt).toLocaleDateString()}
                       </td>
                     </tr>
