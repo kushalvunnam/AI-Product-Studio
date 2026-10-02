@@ -1,10 +1,9 @@
 import { useState, useRef, useCallback } from 'react';
 import { UploadCloud, Image as ImageIcon, Sparkles, Layers, Sliders, CheckCircle2, AlertCircle, X, Check, Activity, Download, Settings2, ImagePlus, LayoutTemplate, SplitSquareHorizontal } from 'lucide-react';
-import { uploadProductImage, analyzeProductImage, generateCampaignVariations } from '../services/api';
+import { uploadProductImage, analyzeProductImage, generateCampaignVariations, API_BASE_URL } from '../services/api';
 import { createCampaign, updateCampaign } from '../services/campaignService';
 import { useNavigate } from 'react-router-dom';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 export const transformAssets = async (data) => {
   const response = await fetch(`${API_BASE_URL}/api/assets/transform`, {
     method: 'POST',
