@@ -251,6 +251,38 @@ const CreateCampaign = () => {
           </div>
         )}
 
+        {step === 2 && (isAnalyzing || analysisError) && (
+          <div className="space-y-6">
+            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary-400" /> AI Vision Analysis
+            </h2>
+            
+            {isAnalyzing && (
+              <div className="bg-surface border border-slate-700 rounded-xl p-8 max-w-md mx-auto my-12 shadow-xl relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-slate-800">
+                  <div className="h-full bg-primary-500 animate-pulse" style={{ width: '100%' }}></div>
+                </div>
+                <div className="flex items-center justify-center flex-col text-center">
+                  <Activity className="w-10 h-10 text-primary-400 mb-4 animate-spin" />
+                  <h3 className="text-lg font-bold text-white mb-2">Analyzing Product Image</h3>
+                  <p className="text-slate-400 text-sm">Gemini AI is examining your product to extract visual context, materials, and marketing keywords...</p>
+                </div>
+              </div>
+            )}
+
+            {analysisError && (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-8 max-w-md mx-auto text-center">
+                <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+                <h3 className="text-lg font-bold text-red-400 mb-2">Analysis Failed</h3>
+                <p className="text-slate-300 text-sm mb-6">{analysisError}</p>
+                <button onClick={startAnalysis} className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg transition-colors font-medium">
+                  Try Again
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
         {step === 2 && analysis && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
