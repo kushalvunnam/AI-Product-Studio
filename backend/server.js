@@ -42,6 +42,18 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'ProductStudio AI API is running' });
 });
 
+app.get('/api/groq-models', async (req, res) => {
+  try {
+    const groqRes = await fetch('https://api.groq.com/openai/v1/models', {
+      headers: { 'Authorization': `Bearer ${process.env.GROQ_API_KEY}` }
+    });
+    const data = await groqRes.json();
+    res.json(data);
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Routes
 app.use('/api/upload', require('./routes/uploadRoutes'));
 app.use('/api/vision', require('./routes/visionRoutes'));
