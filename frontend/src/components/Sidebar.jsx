@@ -31,12 +31,12 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         {/* Brand */}
         <div className="h-20 flex items-center justify-between px-8 border-b border-slate-100/50">
           <Link to="/" className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#00d2ff] to-[#3a7bd5] flex items-center justify-center shadow-lg shadow-blue-500/30 text-white font-bold">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#00d2ff] to-[#3a7bd5] flex items-center justify-center shadow-lg shadow-blue-500/30 text-[#172033] font-bold">
               <Wand2 className="w-5 h-5" />
             </div>
-            <span className="text-xl font-bold text-slate-800 tracking-tight">ProductStudio<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00d2ff] to-[#3a7bd5]">AI</span></span>
+            <span className="text-xl font-bold text-[#101828] tracking-tight">ProductStudio<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00d2ff] to-[#3a7bd5]">AI</span></span>
           </Link>
-          <button onClick={() => setIsOpen(false)} className="lg:hidden p-2 text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-full transition-colors">
+          <button onClick={() => setIsOpen(false)} className="lg:hidden p-2 text-[#6B7A90] hover:text-[#344054] bg-slate-50 hover:bg-slate-100 rounded-full transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -52,11 +52,11 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                 onClick={() => setIsOpen(false)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-[14px] font-medium transition-all duration-300 group ${
                   isActive 
-                    ? 'bg-gradient-to-r from-[#00d2ff]/10 to-[#3a7bd5]/10 text-slate-800 shadow-sm border border-[#00d2ff]/20' 
-                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700 border border-transparent'
+                    ? 'bg-gradient-to-r from-[#00d2ff]/10 to-[#3a7bd5]/10 text-[#101828] shadow-sm border border-[#00d2ff]/20' 
+                    : 'text-[#52627A] hover:bg-slate-50 hover:text-[#344054] border border-transparent'
                 }`}
               >
-                <item.icon className={`w-5 h-5 transition-colors ${isActive ? 'text-[#3a7bd5]' : 'text-slate-400 group-hover:text-slate-600'}`} />
+                <item.icon className={`w-5 h-5 transition-colors ${isActive ? 'text-[#3a7bd5]' : 'text-[#6B7A90] group-hover:text-[#52627A]'}`} />
                 {item.name}
               </Link>
             );
@@ -72,7 +72,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
               </div>
             </div>
             <div>
-              <p className="text-sm font-bold text-slate-800">Jane Doe</p>
+              <p className="text-sm font-bold text-[#101828]">Jane Doe</p>
               <p className="text-xs text-[#3a7bd5] font-medium">Pro Plan</p>
             </div>
           </div>
