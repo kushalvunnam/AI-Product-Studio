@@ -16,14 +16,37 @@ export const transformAssets = async (data) => {
   return result;
 };
 
-const generationModels = [
-  { id: "auto", name: "Auto — Recommended", description: "Cloudinary automatically selects the best model" },
-  { id: "nano-banana-2", name: "Nano Banana 2", description: "Fast, creative generations" },
-  { id: "flux-2-pro", name: "FLUX 2 Pro", description: "Photorealistic product imagery" },
-  { id: "gpt-image-2", name: "GPT Image 2", description: "High-quality general purpose" },
-  { id: "ideogram-v4-base", name: "Ideogram v4 Base", description: "Excellent layout and text rendering" },
-  { id: "recraft-v4", name: "Recraft v4", description: "Clean vector and illustration styles" }
-];
+const IMAGE_EDIT_MODELS = {
+  auto: {
+    id: "auto",
+    name: "Auto — Recommended",
+    description: "Cloudinary automatically selects the best model",
+    mode: "auto"
+  },
+  nanoBanana2: {
+    id: "nano-banana-2-edit",
+    name: "Nano Banana 2",
+    description: "Fast, creative generations"
+  },
+  flux2Pro: {
+    id: "flux-2-pro-edit",
+    name: "FLUX 2 Pro",
+    description: "Photorealistic product imagery"
+  },
+  gptImage2: {
+    id: "gpt-image-2-edit",
+    name: "GPT Image 2",
+    description: "High-quality general purpose"
+  },
+  recraftV4: {
+    id: "recraft-v4",
+    name: "Recraft v4",
+    description: "Clean vector and illustration styles",
+    disabled: true,
+    tooltip: "Not available for reference-image generation"
+  }
+};
+const generationModels = Object.values(IMAGE_EDIT_MODELS);
 
 const CreateCampaign = () => {
   const navigate = useNavigate();
