@@ -1,4 +1,66 @@
-const fetch = require('node-fetch') || global.fetch;
+const fetch = global.fetch;
+
+const generateImageWithRetry = async (payload, authHeader, maxRetries = 3) => {
+  const endpoint = \`https://api.cloudinary.com/v2/generate/\${process.env.CLOUDINARY_CLOUD_NAME}/image_to_image\`;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
+
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authHeader
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      // Handle successful responses
+      if (response.ok) {
+        const data = await response.json();
+        return data;
+      }
+
+      // Handle errors
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = errorData.error?.message || \`HTTP \${response.status}\`;
+
+      // Check if error is transient (429 Too Many Requests, or 5xx server errors)
+      // "Generation limit exceeded" is usually 400 or 403, but let's check text as well
+      const isTransient = response.status === 429 || (response.status >= 500 && response.status < 600) || errorMessage.toLowerCase().includes('limit');
+      
+      if (!isTransient || attempt === maxRetries) {
+        throw new Error(errorMessage || 'Failed to generate image with Cloudinary API');
+      }
+
+      // Exponential backoff with jitter
+      const delay = Math.min(1000 * Math.pow(2, attempt - 1) + Math.random() * 500, 10000);
+      console.log(\`Cloudinary rate limit/transient error (\${response.status}). Retrying in \${Math.round(delay)}ms... (Attempt \${attempt}/\${maxRetries})\`);
+      await new Promise(res => setTimeout(res, delay));
+      
+    } catch (error) {
+      clearTimeout(timeoutId);
+      
+      if (error.name === 'AbortError') {
+        if (attempt === maxRetries) {
+          throw new Error('Cloudinary image generation timed out after 60 seconds.');
+        }
+        // Timeout is considered transient, retry
+        const delay = Math.min(1000 * Math.pow(2, attempt - 1) + Math.random() * 500, 10000);
+        console.log(\`Cloudinary timeout. Retrying in \${Math.round(delay)}ms... (Attempt \${attempt}/\${maxRetries})\`);
+        await new Promise(res => setTimeout(res, delay));
+        continue;
+      }
+
+      throw error; // Not an abort error, maybe syntax error or unhandled error
+    }
+  }
+};
 
 const generateImage = async ({ prompt, referenceAsset, model, settings }) => {
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
@@ -9,8 +71,6 @@ const generateImage = async ({ prompt, referenceAsset, model, settings }) => {
     throw new Error('Cloudinary credentials are not properly configured.');
   }
 
-  const endpoint = \`https://api.cloudinary.com/v2/generate/\${cloudName}/image_to_image\`;
-  
   const payload = {
     prompt: prompt,
     target: {
@@ -35,28 +95,9 @@ const generateImage = async ({ prompt, referenceAsset, model, settings }) => {
 
   const authHeader = 'Basic ' + Buffer.from(\`\${apiKey}:\${apiSecret}\`).toString('base64');
   
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout per variation
-
   try {
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': authHeader
-      },
-      body: JSON.stringify(payload),
-      signal: controller.signal
-    });
+    const data = await generateImageWithRetry(payload, authHeader);
 
-    clearTimeout(timeoutId);
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error?.message || 'Failed to generate image with Cloudinary API');
-    }
-    
     const generatedAsset = data.data?.assets ? data.data.assets[0] : data.target_asset;
     
     if (!generatedAsset) {
@@ -76,10 +117,7 @@ const generateImage = async ({ prompt, referenceAsset, model, settings }) => {
     };
 
   } catch (error) {
-    clearTimeout(timeoutId);
-    if (error.name === 'AbortError') {
-      throw new Error('Cloudinary image generation timed out after 60 seconds.');
-    }
+    console.error('Cloudinary Generation API Error:', error.message);
     throw new Error(error.message || 'Failed to generate image with Cloudinary API');
   }
 };

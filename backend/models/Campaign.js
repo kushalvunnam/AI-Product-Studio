@@ -11,6 +11,9 @@ const CampaignSchema = new mongoose.Schema({
     enum: ['draft', 'analyzing', 'generating', 'review', 'transforming', 'completed', 'failed'],
     default: 'draft'
   },
+  errorMessage: {
+    type: String
+  },
   sourceImage: {
     assetId: String,
     publicId: String,

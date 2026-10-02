@@ -23,11 +23,12 @@ const generateCampaignVariations = async (req, res) => {
         if (result.variations.length > 0) {
           await Campaign.findByIdAndUpdate(campaignId, { variations: result.variations, status: 'review' });
         } else {
-          await Campaign.findByIdAndUpdate(campaignId, { status: 'failed' });
+          const errMsg = result.failed && result.failed.length > 0 ? result.failed[0].error : 'All variations failed to generate.';
+          await Campaign.findByIdAndUpdate(campaignId, { status: 'failed', errorMessage: errMsg });
         }
       }).catch(async (err) => {
         console.error('Async generation failed:', err);
-        await Campaign.findByIdAndUpdate(campaignId, { status: 'failed' });
+        await Campaign.findByIdAndUpdate(campaignId, { status: 'failed', errorMessage: err.message || 'Generation failed on the server.' });
       });
 
       return res.status(202).json({
