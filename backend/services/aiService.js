@@ -83,7 +83,7 @@ If a field cannot be reliably determined from the image, use "unknown" or an emp
     if (error.message && error.message.includes('API configuration is missing')) {
       throw error;
     }
-    throw new Error('AI Vision service is temporarily unavailable.');
+    throw new Error('AI Vision failed: ' + error.message);
   }
 };
 
