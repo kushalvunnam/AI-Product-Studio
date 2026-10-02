@@ -32,7 +32,7 @@ const analyzeProductImage = async (imageUrl) => {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
     const imagePart = await urlToGenerativePart(imageUrl);
     
     const prompt = `Analyze this product image for a marketing campaign. Return ONLY a valid JSON object with the exact following schema. Do not include markdown formatting or backticks around the JSON.
