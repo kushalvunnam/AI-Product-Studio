@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { UploadCloud, Image as ImageIcon, Sparkles, Layers, Sliders, CheckCircle2, AlertCircle, X, Check, Activity, Download, Settings2, ImagePlus, LayoutTemplate, SplitSquareHorizontal } from 'lucide-react';
-import { uploadProductImage, analyzeProductImage, generateCampaignVariations, API_BASE_URL } from '../services/api';
+import { uploadProductImage, analyzeProductImage, generateCampaignVariations, getGenerationStatus, API_BASE_URL } from '../services/api';
 import { createCampaign, updateCampaign, getCampaignById } from '../services/campaignService';
 import { useNavigate } from 'react-router-dom';
 
@@ -57,6 +57,9 @@ const CreateCampaign = () => {
   const [generationError, setGenerationError] = useState(null);
   const [generatedResult, setGeneratedResult] = useState(null);
   const [generationProgress, setGenerationProgress] = useState(0);
+  useEffect(() => { return () => { if (pollingRef?.current) clearInterval(pollingRef.current); } }, []);
+  const [generationStatus, setGenerationStatus] = useState({ message: 'Preparing generation', completed: 0, total: 4 });
+  const pollingRef = useRef(null);
 
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [selectedPlatforms, setSelectedPlatforms] = useState({ instagram: true, story: true, website: true, advertisement: true, productCard: true });
@@ -115,56 +118,111 @@ const CreateCampaign = () => {
   };
 
   const startGeneration = async () => {
-    if (!sourceImage || !analysis) return;
-    setStep(4); setIsGenerating(true); setGenerationError(null); setGenerationProgress(1);
+    if (!sourceImage || !analysis || isGenerating) return;
+    setStep(4); 
+    setIsGenerating(true); 
+    setGenerationError(null); 
+    setGenerationStatus({ message: 'Starting AI generation service...', completed: 0, total: variationCount });
+    
     try {
-      // Auto-save brief
-      if (campaignId) await updateCampaign(campaignId, { creativeBrief, model: modelSettings, status: 'generating', name: creativeBrief.campaignName });
+      if (campaignId) {
+        await updateCampaign(campaignId, { 
+          creativeBrief, 
+          model: modelSettings, 
+          status: 'generating', 
+          name: creativeBrief.campaignName 
+        });
+      }
       
-      const p1 = setTimeout(() => setGenerationProgress(2), 2000);
-      const result = await generateCampaignVariations({ campaignId, sourceImage, analysis, creativeBrief, model: modelSettings, variationCount });
-      clearTimeout(p1); setGenerationProgress(4);
+      const result = await generateCampaignVariations({ 
+        campaignId, 
+        sourceImage, 
+        analysis, 
+        creativeBrief, 
+        model: modelSettings, 
+        variationCount 
+      });
       
-        if (result.isAsync && campaignId) {
-          // Poll for completion
-          let isDone = false;
-          let finalResult = null;
-          while (!isDone) {
-            await new Promise(resolve => setTimeout(resolve, 5000));
-            const camp = await getCampaignById(campaignId);
-            if (camp.status === 'review' && camp.variations && camp.variations.length > 0) {
-              isDone = true;
-              finalResult = { success: true, variations: camp.variations };
-            } else if (camp.status === 'failed') {
-              throw new Error('Generation failed on the server. Please try again.');
+      if (result.isAsync && result.jobId) {
+        setGenerationStatus(prev => ({ ...prev, message: 'AI generation started' }));
+        
+        let pollCount = 0;
+        const maxPolls = 45; // 45 * 2s = 90 seconds timeout
+        
+        if (pollingRef.current) clearInterval(pollingRef.current);
+        
+        pollingRef.current = setInterval(async () => {
+          try {
+            pollCount++;
+            if (pollCount > maxPolls) {
+              clearInterval(pollingRef.current);
+              setGenerationError('Generation is taking longer than expected.');
+              setIsGenerating(false);
+              return;
             }
+            
+            const statusData = await getGenerationStatus(result.jobId);
+            const { status, mappedStatus, completed, total, variations, error } = statusData;
+            
+            setGenerationStatus({ 
+              message: `Generating variations... ${completed} / ${total} completed`,
+              completed, 
+              total 
+            });
+            
+            // Check for early partial success
+            const validVariations = variations ? variations.filter(v => v.secureUrl && v.status !== 'failed') : [];
+            const hasFailed = variations && variations.some(v => v.status === 'failed' || v.error);
+            
+            if (mappedStatus === 'completed' || mappedStatus === 'partial' || mappedStatus === 'failed') {
+              clearInterval(pollingRef.current);
+              
+              if (validVariations.length > 0) {
+                setGeneratedResult({ success: true, variations: validVariations, hasFailed });
+                const firstVariant = validVariations[0];
+                setSelectedVariant(firstVariant);
+                if (campaignId) await updateCampaign(campaignId, { selectedVariation: firstVariant });
+                setIsGenerating(false);
+                setStep(5);
+              } else if (mappedStatus === 'failed' || error || (variations && variations.length > 0)) {
+                setGenerationError(error || 'Failed to generate valid variations.');
+                setIsGenerating(false);
+              } else {
+                setGenerationError('Generation failed on the server. Please try again.');
+                setIsGenerating(false);
+              }
+            }
+          } catch (pollErr) {
+            console.error('Polling error:', pollErr);
+            // Don't kill polling on a transient network error, just let it loop until timeout
           }
-          setGeneratedResult(finalResult);
-          
-          if (finalResult && finalResult.variations && finalResult.variations.length > 0) {
-            const firstVariant = finalResult.variations[0];
-            setSelectedVariant(firstVariant);
-            await updateCampaign(campaignId, { selectedVariation: firstVariant });
-            setStep(5);
-          }
-        } else {
+        }, 2000);
+      } else {
+        // Sync response
+        if (result && result.variations && result.variations.length > 0) {
           setGeneratedResult(result);
           if (campaignId) await updateCampaign(campaignId, { variations: result.variations, status: 'review' });
-          if (result && result.variations && result.variations.length > 0) {
-            const firstVariant = result.variations[0];
-            setSelectedVariant(firstVariant);
-            if (campaignId) await updateCampaign(campaignId, { selectedVariation: firstVariant });
-            setStep(5);
-          }
+          const firstVariant = result.variations[0];
+          setSelectedVariant(firstVariant);
+          if (campaignId) await updateCampaign(campaignId, { selectedVariation: firstVariant });
+          setIsGenerating(false);
+          setStep(5);
+        } else {
+          throw new Error('No variations generated');
         }
-        setIsGenerating(false);
+      }
     } catch (err) {
+      if (pollingRef.current) clearInterval(pollingRef.current);
       setGenerationError(err.message || 'Generation failed.');
       if (campaignId) { try { await updateCampaign(campaignId, { status: 'failed' }); } catch(e) {} }
       setIsGenerating(false);
     }
   };
 
+  // Cleanup on unmount
+   // ensure useEffect is imported
+  // wait we already have imports. I'll just use React.useEffect if needed, but CreateCampaign doesn't use unmount cleanup for interval.
+  
   const selectVariant = async (variant) => { 
     setSelectedVariant(variant); 
     if (campaignId) await updateCampaign(campaignId, { selectedVariation: variant });
@@ -389,14 +447,22 @@ const CreateCampaign = () => {
   </div>
 )}
               {isGenerating && (
-              <div className="glass-panel p-8 max-w-md mx-auto my-12 shadow-xl relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-1 bg-slate-800"><div className="h-full bg-primary animate-pulse" style={{ width: '100%' }}></div></div>
-                <div className="flex items-center gap-3 mb-6"><ImagePlus className="w-6 h-6 text-primary animate-pulse" /><h3 className="text-lg font-bold text-white tracking-widest uppercase">Generation Pipeline</h3></div>
-                <ul className="space-y-4 font-mono text-sm">
-                  <li className="flex items-center gap-3 text-emerald-400"><CheckCircle2 className="w-4 h-4" /> Generating on Cloudinary...</li>
-                </ul>
-              </div>
-            )}
+    <div className="glass-panel p-8 max-w-md mx-auto my-12 shadow-xl relative overflow-hidden">
+      <div className="absolute top-0 left-0 w-full h-1 bg-slate-800">
+        <div className="h-full bg-primary transition-all duration-500" style={{ width: `${Math.max(5, (generationStatus.completed / generationStatus.total) * 100)}%` }}></div>
+      </div>
+      <div className="flex items-center gap-3 mb-6">
+        <ImagePlus className="w-6 h-6 text-primary animate-pulse" />
+        <h3 className="text-lg font-bold text-white tracking-widest uppercase">Generation Pipeline</h3>
+      </div>
+      <ul className="space-y-4 font-mono text-sm">
+        <li className="flex items-center gap-3 text-emerald-400">
+          <Activity className="w-4 h-4 animate-spin" /> 
+          {generationStatus.message}
+        </li>
+      </ul>
+    </div>
+  )}
 
             {generatedResult && !isGenerating && (
               <div className="space-y-6 max-w-none">

@@ -149,3 +149,26 @@ export const generateCampaignVariations = async (data) => {
     throw error;
   }
 };
+
+export const getGenerationStatus = async (jobId) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/generation/status/${jobId}`);
+    const text = await response.text();
+    
+    if (!text) {
+      throw new Error('Empty backend response.');
+    }
+    
+    let result;
+    try {
+      result = JSON.parse(text);
+    } catch(e) {
+      throw new Error('Invalid JSON from status endpoint');
+    }
+    
+    return result;
+  } catch (error) {
+    console.error('Status Error:', error);
+    throw error;
+  }
+};

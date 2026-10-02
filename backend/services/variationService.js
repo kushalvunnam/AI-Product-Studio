@@ -1,48 +1,73 @@
 const { generateImage } = require('./cloudinaryGenerationService');
 const { buildVariationPrompt, variationStrategies } = require('./promptBuilder');
 
-/**
- * Generates multiple variations using parallel Cloudinary generation requests
- */
-const generateVariations = async ({ sourceImage, analysis, creativeBrief, model, count }) => {
-  // Determine which strategies to use based on count
-  // We'll just pick the first 'count' strategies for simplicity, or select dynamically
-  const selectedStrategies = variationStrategies.slice(0, count);
+// Simple chunking for concurrency limit
+const chunkArray = (array, size) => {
+  const chunks = [];
+  for (let i = 0; i < array.length; i += size) {
+    chunks.push(array.slice(i, i + size));
+  }
+  return chunks;
+};
 
+const generateVariations = async ({ sourceImage, analysis, creativeBrief, model, count, onProgress }) => {
+  const selectedStrategies = variationStrategies.slice(0, count);
   const variations = [];
   const failed = [];
 
-  for (const strategy of selectedStrategies) {
-    try {
-      const prompt = buildVariationPrompt({ analysis, creativeBrief, variationType: strategy.id });
-      
-      const asset = await generateImage({
-        prompt,
-        referenceAsset: sourceImage,
-        model,
-        settings: {}
-      });
+  // Concurrency limit of 2
+  const CONCURRENCY_LIMIT = 2;
+  const chunks = chunkArray(selectedStrategies, CONCURRENCY_LIMIT);
 
-      variations.push({
-        id: `var_${strategy.id}_${Date.now()}`,
-        variationType: strategy.id,
-        variationName: strategy.name,
-        promptUsed: prompt,
-        secureUrl: asset.secureUrl,
-        publicId: asset.publicId,
-        assetId: asset.assetId || `gen_${Date.now()}`,
-        width: asset.width || sourceImage.width,
-        height: asset.height || sourceImage.height,
-        format: asset.format || sourceImage.format
-      });
-    } catch (error) {
-      console.error(`Failed to generate variation ${strategy.name}:`, error);
-      failed.push({
-        variationType: strategy.id,
-        variationName: strategy.name,
-        error: error.message
-      });
-    }
+  let completedCount = 0;
+
+  for (const chunk of chunks) {
+    const promises = chunk.map(async (strategy) => {
+      try {
+        const prompt = buildVariationPrompt({ analysis, creativeBrief, variationType: strategy.id });
+        
+        const asset = await generateImage({
+          prompt,
+          referenceAsset: sourceImage,
+          model,
+          settings: {}
+        });
+
+        const variation = {
+          id: `var_${strategy.id}_${Date.now()}`,
+          variationType: strategy.id,
+          variationName: strategy.name,
+          promptUsed: prompt,
+          secureUrl: asset.secureUrl,
+          publicId: asset.publicId,
+          assetId: asset.assetId || `gen_${Date.now()}`,
+          width: asset.width || sourceImage.width,
+          height: asset.height || sourceImage.height,
+          format: asset.format || sourceImage.format,
+          status: 'success'
+        };
+        variations.push(variation);
+      } catch (error) {
+        console.error(`Failed to generate variation ${strategy.name}:`, error);
+        failed.push({
+          variationType: strategy.id,
+          variationName: strategy.name,
+          error: error.message
+        });
+      } finally {
+        completedCount++;
+        if (onProgress) {
+          await onProgress({
+            completed: completedCount,
+            total: selectedStrategies.length,
+            variations,
+            failed
+          });
+        }
+      }
+    });
+
+    await Promise.all(promises);
   }
 
   return { variations, failed };
