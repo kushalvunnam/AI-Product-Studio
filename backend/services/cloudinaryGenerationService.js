@@ -31,19 +31,15 @@ const generateImage = async ({ prompt, referenceAsset, model, settings }) => {
   if (referenceAsset.assetId) {
     payload.reference_images = [
       {
-        source: {
-          source_type: "managed_asset",
-          asset_id: referenceAsset.assetId
-        }
+        source_type: "managed_asset",
+        asset_id: referenceAsset.assetId
       }
     ];
   } else if (referenceAsset.secureUrl) {
     payload.reference_images = [
       {
-        source: {
-          source_type: "url",
-          url: referenceAsset.secureUrl
-        }
+        source_type: "url",
+        url: referenceAsset.secureUrl
       }
     ];
   } else {
