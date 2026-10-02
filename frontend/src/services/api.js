@@ -111,12 +111,38 @@ export const generateCampaignVariations = async (data) => {
       body: JSON.stringify(data),
     });
 
-    let result; try { result = await response.json(); } catch(e) { throw new Error('Cloudinary Generation Timeout/Error (500/504). Please try again.'); } if (!response.ok) { throw new Error(result.message || 'Variation generation failed'); }
-
-    if (!result.success || !result.variations) {
-      throw new Error('Invalid response from server');
+    const text = await response.text();
+    
+    if (!text) {
+      throw new Error('Empty backend response. The image generation service might be down.');
     }
 
+    let result;
+    try {
+      result = JSON.parse(text);
+    } catch (e) {
+      // It's not JSON (probably HTML from Render 502/504)
+      if (response.status === 504) {
+        throw new Error('Variation generation timed out. The image generation service took too long.');
+      }
+      if (response.status === 503 || response.status === 502) {
+        throw new Error('Image generation service is temporarily unavailable. Please retry.');
+      }
+      if (response.status === 429) {
+        throw new Error('Image generation rate limit reached. Please wait and retry.');
+      }
+      throw new Error(`Unexpected HTML response from server (Status ${response.status})`);
+    }
+
+    if (!response.ok) {
+      throw new Error(result.message || result.error || 'Variation generation failed on the backend.');
+    }
+
+    if (!result.success) {
+      throw new Error(result.message || 'Invalid response from server');
+    }
+
+    // Notice we removed !result.variations because isAsync might be true
     return result;
   } catch (error) {
     console.error('API Error during variations generation:', error);

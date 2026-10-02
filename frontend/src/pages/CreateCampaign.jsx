@@ -375,7 +375,19 @@ const CreateCampaign = () => {
           <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
             <h2 className="text-xl font-bold text-white flex items-center gap-2"><Layers className="w-5 h-5 text-primary" /> Cloudinary AI Generation</h2>
             
-            {generationError && (<div className="bg-red-500/10 border border-red-500 rounded-xl p-6 text-red-500 mb-8">{generationError}</div>)}
+            {generationError && (
+  <div className="bg-red-500/10 border border-red-500 rounded-xl p-6 text-red-500 mb-8 flex flex-col items-center text-center">
+    <AlertCircle className="w-12 h-12 mb-4" />
+    <p className="mb-4">{generationError}</p>
+    <button 
+      onClick={startGeneration} 
+      className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+      disabled={isGenerating}
+    >
+      Retry Generation
+    </button>
+  </div>
+)}
               {isGenerating && (
               <div className="glass-panel p-8 max-w-md mx-auto my-12 shadow-xl relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-1 bg-slate-800"><div className="h-full bg-primary animate-pulse" style={{ width: '100%' }}></div></div>
