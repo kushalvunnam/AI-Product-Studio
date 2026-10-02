@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { UploadCloud, Image as ImageIcon, Sparkles, Layers, Sliders, CheckCircle2, AlertCircle, X, Check, Activity, Download, Settings2, ImagePlus, LayoutTemplate, SplitSquareHorizontal } from 'lucide-react';
 import { uploadProductImage, analyzeProductImage, generateCampaignVariations, API_BASE_URL } from '../services/api';
-import { createCampaign, updateCampaign } from '../services/campaignService';
+import { createCampaign, updateCampaign, getCampaignById } from '../services/campaignService';
 import { useNavigate } from 'react-router-dom';
 
 export const transformAssets = async (data) => {
@@ -122,14 +122,28 @@ const CreateCampaign = () => {
       if (campaignId) await updateCampaign(campaignId, { creativeBrief, model: modelSettings, status: 'generating', name: creativeBrief.campaignName });
       
       const p1 = setTimeout(() => setGenerationProgress(2), 2000);
-      const result = await generateCampaignVariations({ sourceImage, analysis, creativeBrief, model: modelSettings, variationCount });
+      const result = await generateCampaignVariations({ campaignId, sourceImage, analysis, creativeBrief, model: modelSettings, variationCount });
       clearTimeout(p1); setGenerationProgress(4);
       
-      setGeneratedResult(result);
-      
-      // Auto-save variations
-      if (campaignId) await updateCampaign(campaignId, { variations: result.variations, status: 'review' });
-      
+      if (result.isAsync && campaignId) {
+        // Poll for completion
+        let isDone = false;
+        let finalResult = null;
+        while (!isDone) {
+          await new Promise(resolve => setTimeout(resolve, 5000));
+          const camp = await getCampaignById(campaignId);
+          if (camp.status === 'review' && camp.variations && camp.variations.length > 0) {
+            isDone = true;
+            finalResult = { success: true, variations: camp.variations };
+          } else if (camp.status === 'failed') {
+            throw new Error('Generation failed on the server. Please try again.');
+          }
+        }
+        setGeneratedResult(finalResult);
+      } else {
+        setGeneratedResult(result);
+        if (campaignId) await updateCampaign(campaignId, { variations: result.variations, status: 'review' });
+      }
       setIsGenerating(false);
     } catch (err) {
       setGenerationError(err.message || 'Generation failed.');

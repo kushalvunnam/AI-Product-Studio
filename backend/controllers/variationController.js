@@ -1,18 +1,43 @@
 const { generateVariations } = require('../services/variationService');
+const Campaign = require('../models/Campaign');
 
 const generateCampaignVariations = async (req, res) => {
   try {
-    const { sourceImage, analysis, creativeBrief, model, variationCount } = req.body;
+    const { campaignId, sourceImage, analysis, creativeBrief, model, variationCount } = req.body;
 
     if (!sourceImage || !sourceImage.publicId) {
       return res.status(400).json({ success: false, message: 'Source image publicId is required.' });
     }
 
-    const count = parseInt(variationCount, 10);
-    if (![1, 2, 4, 8].includes(count)) {
-      return res.status(400).json({ success: false, message: 'variationCount must be 1, 2, 4, or 8.' });
+    const count = parseInt(variationCount, 10) || 4;
+    
+    if (campaignId) {
+      // Async background generation
+      generateVariations({
+        sourceImage,
+        analysis,
+        creativeBrief,
+        model: model || { mode: 'auto', preference: 'balanced' },
+        count
+      }).then(async (result) => {
+        if (result.variations.length > 0) {
+          await Campaign.findByIdAndUpdate(campaignId, { variations: result.variations, status: 'review' });
+        } else {
+          await Campaign.findByIdAndUpdate(campaignId, { status: 'failed' });
+        }
+      }).catch(async (err) => {
+        console.error('Async generation failed:', err);
+        await Campaign.findByIdAndUpdate(campaignId, { status: 'failed' });
+      });
+
+      return res.status(202).json({
+        success: true,
+        message: 'Generation started asynchronously.',
+        isAsync: true
+      });
     }
 
+    // Fallback synchronous generation
     const { variations, failed } = await generateVariations({
       sourceImage,
       analysis,
