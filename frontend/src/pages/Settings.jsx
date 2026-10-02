@@ -1,0 +1,98 @@
+import React, { useState } from 'react';
+import { User, Mail, Shield, CheckCircle2, XCircle } from 'lucide-react';
+
+const Settings = () => {
+  const [editing, setEditing] = useState(false);
+  const [profile, setProfile] = useState({ name: 'ProductStudio User', email: 'user@productstudio.ai', plan: 'Pro Tier' });
+  const [tempProfile, setTempProfile] = useState({ ...profile });
+  const [status, setStatus] = useState(null); // 'saving', 'success', 'error'
+
+  const handleSave = () => {
+    setStatus('saving');
+    setTimeout(() => {
+      setProfile(tempProfile);
+      setEditing(false);
+      setStatus('success');
+      setTimeout(() => setStatus(null), 3000);
+    }, 800);
+  };
+
+  return (
+    <div className="p-8 max-w-4xl mx-auto animate-in fade-in duration-500">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-white tracking-tight">Account Settings</h1>
+        <p className="text-slate-400 mt-1">Manage your profile and platform preferences</p>
+      </div>
+
+      {status === 'success' && (
+        <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-lg flex items-center gap-3 text-emerald-400">
+          <CheckCircle2 className="w-5 h-5" /> Profile updated successfully.
+        </div>
+      )}
+
+      <div className="bg-surface border border-slate-800 rounded-xl overflow-hidden shadow-xl mb-8">
+        <div className="p-6 border-b border-slate-800">
+          <h2 className="text-xl font-semibold text-white flex items-center gap-2"><User className="w-5 h-5 text-primary-400"/> Profile Information</h2>
+        </div>
+        <div className="p-6 space-y-6">
+          <div className="flex items-center gap-6">
+            <div className="w-20 h-20 rounded-full bg-slate-800 border-2 border-primary-500/30 flex items-center justify-center text-2xl font-bold text-primary-400 uppercase">
+              {profile.name.charAt(0)}
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-white">{profile.name}</h3>
+              <p className="text-slate-400">{profile.plan}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-400 mb-2">Full Name</label>
+              {editing ? (
+                <input type="text" value={tempProfile.name} onChange={e => setTempProfile({...tempProfile, name: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none" />
+              ) : (
+                <div className="w-full bg-slate-900/50 border border-slate-800 rounded-lg px-4 py-2 text-slate-200">{profile.name}</div>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-400 mb-2">Email Address</label>
+              <div className="w-full bg-slate-900/50 border border-slate-800 rounded-lg px-4 py-2 text-slate-500 flex items-center gap-2 cursor-not-allowed">
+                <Mail className="w-4 h-4" /> {profile.email}
+              </div>
+              <p className="text-xs text-slate-500 mt-1">Email cannot be changed.</p>
+            </div>
+          </div>
+        </div>
+        <div className="p-4 border-t border-slate-800 bg-slate-900/50 flex justify-end gap-4">
+          {editing ? (
+            <>
+              <button onClick={() => {setEditing(false); setTempProfile(profile);}} className="px-4 py-2 rounded-lg text-slate-300 hover:bg-slate-800 transition-colors">Cancel</button>
+              <button onClick={handleSave} disabled={status==='saving'} className="bg-primary-600 hover:bg-primary-500 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center gap-2">
+                {status === 'saving' ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Changes'}
+              </button>
+            </>
+          ) : (
+            <button onClick={() => setEditing(true)} className="bg-slate-800 hover:bg-slate-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+              Edit Profile
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="bg-surface border border-slate-800 rounded-xl overflow-hidden shadow-xl">
+        <div className="p-6 border-b border-slate-800">
+          <h2 className="text-xl font-semibold text-white flex items-center gap-2"><Shield className="w-5 h-5 text-amber-400"/> Security & Integrations</h2>
+        </div>
+        <div className="p-6">
+          <p className="text-slate-400 mb-4">Groq Vision API: <span className="text-emerald-400 font-medium">Connected</span></p>
+          <p className="text-slate-400 mb-6">Cloudinary API: <span className="text-emerald-400 font-medium">Connected</span></p>
+          <button className="text-red-400 hover:text-red-300 font-medium px-4 py-2 border border-red-500/20 rounded-lg hover:bg-red-500/10 transition-colors">
+            Sign Out
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+import { Loader2 } from 'lucide-react';
+export default Settings;

@@ -4,6 +4,10 @@ import Dashboard from './pages/Dashboard';
 import CreateCampaign from './pages/CreateCampaign';
 import Assets from './pages/Assets';
 import CampaignDetails from './pages/CampaignDetails';
+import Campaigns from './pages/Campaigns';
+import Templates from './pages/Templates';
+import Analytics from './pages/Analytics';
+import Settings from './pages/Settings';
 
 function App() {
   return (
@@ -14,10 +18,10 @@ function App() {
         <Route path="create" element={<CreateCampaign />} />
         <Route path="assets" element={<Assets />} />
         <Route path="campaigns/:id" element={<CampaignDetails />} />
-        <Route path="campaigns" element={<div className="p-8">Campaign History (Coming Soon)</div>} />
-        <Route path="templates" element={<div className="p-8">Templates (Coming Soon)</div>} />
-        <Route path="analytics" element={<div className="p-8">Analytics (Coming Soon)</div>} />
-        <Route path="settings" element={<div className="p-8">Settings (Coming Soon)</div>} />
+        <Route path="campaigns" element={<Campaigns />} />
+        <Route path="templates" element={<Templates />} />
+        <Route path="analytics" element={<Analytics />} />
+        <Route path="settings" element={<Settings />} />
       </Route>
     </Routes>
   );

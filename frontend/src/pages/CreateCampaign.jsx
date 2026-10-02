@@ -125,26 +125,39 @@ const CreateCampaign = () => {
       const result = await generateCampaignVariations({ campaignId, sourceImage, analysis, creativeBrief, model: modelSettings, variationCount });
       clearTimeout(p1); setGenerationProgress(4);
       
-      if (result.isAsync && campaignId) {
-        // Poll for completion
-        let isDone = false;
-        let finalResult = null;
-        while (!isDone) {
-          await new Promise(resolve => setTimeout(resolve, 5000));
-          const camp = await getCampaignById(campaignId);
-          if (camp.status === 'review' && camp.variations && camp.variations.length > 0) {
-            isDone = true;
-            finalResult = { success: true, variations: camp.variations };
-          } else if (camp.status === 'failed') {
-            throw new Error('Generation failed on the server. Please try again.');
+        if (result.isAsync && campaignId) {
+          // Poll for completion
+          let isDone = false;
+          let finalResult = null;
+          while (!isDone) {
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            const camp = await getCampaignById(campaignId);
+            if (camp.status === 'review' && camp.variations && camp.variations.length > 0) {
+              isDone = true;
+              finalResult = { success: true, variations: camp.variations };
+            } else if (camp.status === 'failed') {
+              throw new Error('Generation failed on the server. Please try again.');
+            }
+          }
+          setGeneratedResult(finalResult);
+          
+          if (finalResult && finalResult.variations && finalResult.variations.length > 0) {
+            const firstVariant = finalResult.variations[0];
+            setSelectedVariant(firstVariant);
+            await updateCampaign(campaignId, { selectedVariation: firstVariant });
+            setStep(5);
+          }
+        } else {
+          setGeneratedResult(result);
+          if (campaignId) await updateCampaign(campaignId, { variations: result.variations, status: 'review' });
+          if (result && result.variations && result.variations.length > 0) {
+            const firstVariant = result.variations[0];
+            setSelectedVariant(firstVariant);
+            if (campaignId) await updateCampaign(campaignId, { selectedVariation: firstVariant });
+            setStep(5);
           }
         }
-        setGeneratedResult(finalResult);
-      } else {
-        setGeneratedResult(result);
-        if (campaignId) await updateCampaign(campaignId, { variations: result.variations, status: 'review' });
-      }
-      setIsGenerating(false);
+        setIsGenerating(false);
     } catch (err) {
       setGenerationError(err.message || 'Generation failed.');
       if (campaignId) { try { await updateCampaign(campaignId, { status: 'failed' }); } catch(e) {} }

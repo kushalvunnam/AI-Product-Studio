@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+const fs = require('fs');
+
+const navbarJsx = `import React, { useState, useEffect, useRef } from 'react';
 import { Search, Bell, Plus, Menu, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getCampaigns } from '../services/campaignService';
@@ -34,7 +36,7 @@ const Navbar = () => {
             return {
               id: c._id,
               title,
-              message: `${c.name || 'Untitled'} - ${c.analysis?.productName || 'Product'}`,
+              message: \`\${c.name || 'Untitled'} - \${c.analysis?.productName || 'Product'}\`,
               time: new Date(c.createdAt).toLocaleDateString(),
               icon,
               color,
@@ -122,13 +124,13 @@ const Navbar = () => {
                       <div 
                         key={notif.id} 
                         onClick={() => markAsRead(notif.id)}
-                        className={`p-4 hover:bg-slate-800/50 transition-colors cursor-pointer flex gap-3 ${!notif.read ? 'bg-slate-800/20' : ''}`}
+                        className={\`p-4 hover:bg-slate-800/50 transition-colors cursor-pointer flex gap-3 \${!notif.read ? 'bg-slate-800/20' : ''}\`}
                       >
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border ${notif.color}`}>
+                        <div className={\`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border \${notif.color}\`}>
                           {notif.icon}
                         </div>
                         <div>
-                          <p className={`text-sm font-medium ${!notif.read ? 'text-white' : 'text-slate-300'}`}>{notif.title}</p>
+                          <p className={\`text-sm font-medium \${!notif.read ? 'text-white' : 'text-slate-300'}\`}>{notif.title}</p>
                           <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">{notif.message}</p>
                           <p className="text-[10px] text-slate-500 mt-1">{notif.time}</p>
                         </div>
@@ -162,3 +164,7 @@ const Navbar = () => {
 };
 
 export default Navbar;
+`;
+
+fs.writeFileSync('frontend/src/components/Navbar.jsx', navbarJsx);
+console.log('Fixed Navbar.jsx');
