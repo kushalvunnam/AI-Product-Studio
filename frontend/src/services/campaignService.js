@@ -1,3 +1,5 @@
+import { API_BASE_URL } from './api';
+
 export const createCampaign = async (data) => {
   const response = await fetch(`${API_BASE_URL}/api/campaigns`, {
     method: 'POST',
