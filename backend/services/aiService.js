@@ -32,7 +32,6 @@ const analyzeProductImage = async (imageUrl) => {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
     const imagePart = await urlToGenerativePart(imageUrl);
     
     const prompt = `Analyze this product image for a marketing campaign. Return ONLY a valid JSON object with the exact following schema. Do not include markdown formatting or backticks around the JSON.
@@ -52,7 +51,43 @@ const analyzeProductImage = async (imageUrl) => {
 }
 If a field cannot be reliably determined from the image, use "unknown" or an empty array. Do not hallucinate.`;
 
-    const result = await model.generateContent([prompt, imagePart]);
+    let result;
+    let attempts = 0;
+    const maxAttempts = 3;
+    let currentModelName = "gemini-flash-latest";
+
+    while (attempts < maxAttempts) {
+      attempts++;
+      try {
+        const model = genAI.getGenerativeModel({ model: currentModelName });
+        result = await model.generateContent([prompt, imagePart]);
+        if (attempts > 1) {
+          console.log(`Gemini request succeeded on attempt ${attempts} using ${currentModelName}`);
+        }
+        break;
+      } catch (err) {
+        const isTransient = err.status === 503 || (err.message && (err.message.includes('503') || err.message.includes('temporarily') || err.message.includes('Service Unavailable') || err.message.includes('overloaded')));
+        
+        if (isTransient) {
+          console.error(`Gemini request attempt ${attempts} failed with 503 (${currentModelName})`);
+          
+          if (attempts < maxAttempts) {
+            console.error('Retrying...');
+            const backoffTime = Math.pow(2, attempts - 1) * 1000 + Math.random() * 500;
+            await new Promise(resolve => setTimeout(resolve, backoffTime));
+          } else if (currentModelName === "gemini-flash-latest") {
+            console.error('All retries for gemini-flash-latest failed. Attempting fallback to gemini-3.7-flash.');
+            currentModelName = "gemini-3.7-flash";
+            attempts = 0; // Reset attempts for the fallback model
+          } else {
+            throw err;
+          }
+        } else {
+          throw err;
+        }
+      }
+    }
+
     const responseText = result.response.text();
     
     // Clean up response if model included markdown
