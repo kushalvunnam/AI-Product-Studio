@@ -23,6 +23,7 @@ const generateImage = async ({ prompt, referenceAsset, model, settings }) => {
   const payload = {
     prompt: prompt,
     target: {
+      target_type: "managed_asset",
       folder: "productstudio/generated"
     }
   };
@@ -75,13 +76,21 @@ const generateImage = async ({ prompt, referenceAsset, model, settings }) => {
     if (!response.ok) {
       throw new Error(data.error?.message || 'Failed to generate image with Cloudinary API');
     }
-
-    const generatedAsset = data.target_asset;
     
+    console.log("Cloudinary Success Response:", JSON.stringify(data, null, 2));
+
+    const generatedAsset = data.data?.assets ? data.data.assets[0] : data.target_asset;
+    
+    if (!generatedAsset) {
+        throw new Error('Cloudinary response missing generated asset: ' + JSON.stringify(data));
+    }
+    
+    const storage = generatedAsset.storage || generatedAsset;
+
     return {
-      secureUrl: generatedAsset.secure_url,
-      publicId: generatedAsset.public_id,
-      assetId: generatedAsset.asset_id,
+      secureUrl: storage.secure_url,
+      publicId: storage.public_id,
+      assetId: storage.asset_id,
       width: generatedAsset.width,
       height: generatedAsset.height,
       format: generatedAsset.format,
