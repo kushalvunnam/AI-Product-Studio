@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { UploadCloud, Image as ImageIcon, Sparkles, Layers, Sliders, CheckCircle2, AlertCircle, X, Check, Activity, Download, Settings2, ImagePlus, LayoutTemplate, SplitSquareHorizontal } from 'lucide-react';
 import { uploadProductImage, analyzeProductImage, generateCampaignVariations, getGenerationStatus, API_BASE_URL } from '../services/api';
 import { createCampaign, updateCampaign, getCampaignById } from '../services/campaignService';
