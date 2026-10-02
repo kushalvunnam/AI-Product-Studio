@@ -51,7 +51,7 @@ const Campaigns = () => {
           <h1 className="text-3xl font-bold text-[#172033] tracking-tight">Campaign History</h1>
           <p className="text-[#6B7A90] mt-1">Manage and track all your AI marketing campaigns</p>
         </div>
-        <Link to="/create" className="btn-primary">
+        <Link to="/create" className="btn-primary min-h-[44px]">
           New Campaign
         </Link>
       </div>

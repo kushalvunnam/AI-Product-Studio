@@ -418,7 +418,7 @@ const CreateCampaign = () => {
               <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-[#52627A] mb-2">Campaign Name</label>
-                  <input type="text" name="campaignName" value={creativeBrief.campaignName} onChange={handleBriefChange} className="w-full bg-white shadow-sm border border-slate-200 text-sm rounded-lg block p-2.5 text-[#101828]" />
+                  <input type="text" name="campaignName" value={creativeBrief.campaignName} onChange={handleBriefChange} className="w-full min-h-[44px] bg-white shadow-sm border border-slate-200 text-sm rounded-lg block p-2.5 text-[#101828]" />
                 </div>
               </div>
               <div className="space-y-6">
@@ -508,7 +508,7 @@ const CreateCampaign = () => {
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold text-[#101828]">Select Approved Creative</h3>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-[calc(100vw-3rem)] max-w-full -mx-4 md:mx-0 px-4 md:px-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-full -mx-4 md:mx-0 px-4 md:px-0">
                   {generatedResult.variations.map((variant) => (
                     <div key={variant.id} className="bg-white shadow-sm rounded-xl overflow-hidden border border-slate-200 hover:border-primary/50 shadow-md transition-colors flex flex-col h-full group relative">
                       <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-slate-200/50 flex items-center gap-2 z-10">
@@ -518,7 +518,7 @@ const CreateCampaign = () => {
                         <img src={variant.secureUrl} alt={variant.variationName} className="max-w-full max-h-full object-contain group-hover:scale-[1.02] transition-transform duration-500" />
                       </div>
                       <div className="p-4 bg-slate-50 flex flex-col flex-grow justify-between gap-4 border-t border-slate-100">
-                        <button onClick={() => selectVariant(variant)} className="w-full bg-primary-600 hover:bg-primary text-[#101828] py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"><Check className="w-4 h-4" /> Select for Campaign</button>
+                        <button onClick={() => selectVariant(variant)} className="w-full min-h-[44px] bg-primary-600 hover:bg-primary text-[#101828] py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"><Check className="w-4 h-4" /> Select for Campaign</button>
                       </div>
                     </div>
                   ))}

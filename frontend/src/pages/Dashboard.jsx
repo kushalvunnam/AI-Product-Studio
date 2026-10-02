@@ -45,7 +45,7 @@ const Dashboard = () => {
           </p>
           
           <div className="pt-2 flex flex-col sm:flex-row gap-4">
-            <Link to="/create" className="btn-primary py-3.5 px-8 text-base shadow-[0_10px_30px_rgba(0,210,255,0.3)]">
+            <Link to="/create" className="btn-primary min-h-[44px] py-3.5 px-8 text-base shadow-[0_10px_30px_rgba(0,210,255,0.3)]">
               <Plus className="w-5 h-5" /> Create Campaign
             </Link>
             <Link to="/templates" className="btn-secondary py-3.5 px-8 text-base bg-white/80">

@@ -49,14 +49,14 @@ const Settings = () => {
             <div>
               <label className="block text-sm font-medium text-[#52627A] mb-2">Full Name</label>
               {editing ? (
-                <input type="text" value={tempProfile.name} onChange={e => setTempProfile({...tempProfile, name: e.target.value})} className="w-full bg-white shadow-sm border border-slate-200 rounded-lg px-4 py-2 text-[#101828] focus:border-primary focus:ring-1 focus:ring-primary outline-none shadow-inner" />
+                <input type="text" value={tempProfile.name} onChange={e => setTempProfile({...tempProfile, name: e.target.value})} className="w-full min-h-[44px] bg-white shadow-sm border border-slate-200 rounded-lg px-4 py-2 text-[#101828] focus:border-primary focus:ring-1 focus:ring-primary outline-none shadow-inner" />
               ) : (
-                <div className="w-full bg-white shadow-sm border border-slate-200 rounded-lg px-4 py-2 text-[#344054]">{profile.name}</div>
+                <div className="w-full min-h-[44px] bg-white shadow-sm border border-slate-200 rounded-lg px-4 py-2 text-[#344054]">{profile.name}</div>
               )}
             </div>
             <div>
               <label className="block text-sm font-medium text-[#52627A] mb-2">Email Address</label>
-              <div className="w-full bg-white shadow-sm border border-slate-200 rounded-lg px-4 py-2 text-[#52627A] flex items-center gap-2 cursor-not-allowed">
+              <div className="w-full min-h-[44px] bg-white shadow-sm border border-slate-200 rounded-lg px-4 py-2 text-[#52627A] flex items-center gap-2 cursor-not-allowed">
                 <Mail className="w-4 h-4" /> {profile.email}
               </div>
               <p className="text-xs text-[#52627A] mt-1">Email cannot be changed.</p>
@@ -67,7 +67,7 @@ const Settings = () => {
           {editing ? (
             <>
               <button onClick={() => {setEditing(false); setTempProfile(profile);}} className="px-4 py-2 rounded-lg text-[#52627A] hover:bg-slate-100 transition-colors">Cancel</button>
-              <button onClick={handleSave} disabled={status==='saving'} className="btn-primary py-2 flex items-center gap-2">
+              <button onClick={handleSave} disabled={status==='saving'} className="btn-primary min-h-[44px] py-2 flex items-center gap-2">
                 {status === 'saving' ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Changes'}
               </button>
             </>

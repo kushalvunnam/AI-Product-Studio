@@ -13,7 +13,7 @@ const Header = ({ setIsSidebarOpen }) => {
       <div className="flex items-center gap-4">
         <button 
           onClick={() => setIsSidebarOpen(true)}
-          className="lg:hidden p-2.5 bg-white border border-slate-200 rounded-xl text-[#52627A] hover:bg-slate-50 shadow-sm"
+          className="lg:hidden flex items-center justify-center min-h-[44px] min-w-[44px] bg-white border border-slate-200 rounded-xl text-[#52627A] hover:bg-slate-50 shadow-sm"
         >
           <Menu className="w-5 h-5" />
         </button>
@@ -34,7 +34,7 @@ const Header = ({ setIsSidebarOpen }) => {
         <div className="relative">
           <button 
             onClick={() => { setShowNotifications(!showNotifications); setShowProfile(false); }}
-            className="p-2.5 bg-white border border-slate-200 rounded-xl text-[#52627A] hover:bg-slate-50 shadow-sm transition-all relative"
+            className="flex items-center justify-center min-h-[44px] min-w-[44px] bg-white border border-slate-200 rounded-xl text-[#52627A] hover:bg-slate-50 shadow-sm transition-all relative"
           >
             <Bell className="w-5 h-5" />
             <span className="absolute top-2 right-2.5 w-2 h-2 bg-coral-500 bg-[#ff6b6b] rounded-full border-2 border-white"></span>
@@ -61,26 +61,27 @@ const Header = ({ setIsSidebarOpen }) => {
         </div>
 
         {/* Profile */}
-        <div className="relative hidden sm:block">
+        <div className="relative">
           <button 
             onClick={() => { setShowProfile(!showProfile); setShowNotifications(false); }}
-            className="flex items-center gap-2 p-1.5 pr-3 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 shadow-sm transition-all"
+            className="flex items-center gap-2 p-1.5 sm:pr-3 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 shadow-sm transition-all min-h-[44px] min-w-[44px] justify-center"
           >
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#00d2ff] to-[#3a7bd5] flex items-center justify-center text-[#172033] font-bold text-sm">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#00d2ff] to-[#3a7bd5] flex items-center justify-center text-white font-bold text-sm">
               JD
             </div>
           </button>
 
           {showProfile && (
             <div className="absolute right-0 mt-3 w-48 bg-white rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] border border-slate-100 p-2 z-50 animate-in slide-in-from-top-2">
-              <Link to="/settings" className="block px-4 py-2 text-sm text-[#344054] hover:bg-slate-50 rounded-xl transition-colors">Profile Settings</Link>
+              <Link to="/settings" onClick={() => setShowProfile(false)} className="block px-4 py-2 text-sm text-[#344054] hover:bg-slate-50 rounded-xl transition-colors">Profile Settings</Link>
               <button className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 rounded-xl transition-colors mt-1">Sign Out</button>
             </div>
           )}
         </div>
 
-        <Link to="/create" className="btn-primary hidden sm:flex">
-          <Plus className="w-4 h-4" /> New Campaign
+        <Link to="/create" className="btn-primary min-h-[44px] px-4 sm:px-6">
+          <Plus className="w-5 h-5" /> 
+          <span className="hidden sm:inline">New Campaign</span>
         </Link>
       </div>
     </header>

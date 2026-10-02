@@ -139,7 +139,7 @@ const Navbar = ({ mobileMenuOpen, setMobileMenuOpen }) => {
           </button>
           
           {showNotifications && (
-            <div className="absolute right-0 md:right-0 -mr-4 md:mr-0 mt-3 w-[calc(100vw-2rem)] max-w-sm md:w-80 glass-panel border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50 animate-in slide-in-from-top-2 origin-top-right">
+            <div className="absolute right-0 md:right-0 -mr-4 md:mr-0 mt-3 w-[calc(100%-2rem)] max-w-sm md:w-80 glass-panel border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50 animate-in slide-in-from-top-2 origin-top-right">
               <div className="p-4 border-b border-white/5 flex justify-between items-center bg-white/5">
                 <h3 className="font-bold text-white">Notifications</h3>
                 {unreadCount > 0 && (
