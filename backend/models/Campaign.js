@@ -22,7 +22,13 @@ const CampaignSchema = new mongoose.Schema({
     width: Number,
     height: Number,
     bytes: Number,
-    originalFilename: String
+    originalFilename: String,
+    mask: {
+      publicId: String,
+      secureUrl: String,
+      assetId: String,
+      format: String
+    }
   },
   analysis: {
     productName: String,

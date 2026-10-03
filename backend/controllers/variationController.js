@@ -23,6 +23,14 @@ const Campaign = require('../models/Campaign');
         });
       }
 
+      if (sourceImage.mask) {
+        if (!sourceImage.mask.publicId || (!sourceImage.mask.secure_url && !sourceImage.mask.secureUrl && !sourceImage.mask.url)) {
+          console.warn('[MASK] Invalid mask object found attached to sourceImage');
+        } else {
+          console.log('[GENERATE] mask reference validated', sourceImage.mask.publicId);
+        }
+      }
+
     const count = parseInt(variationCount, 10) || 4;
     
     // Synchronous validation of model availability

@@ -24,6 +24,7 @@ const CreateCampaign = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
+  const [uploadStatus, setUploadStatus] = useState(null);
   
   const [campaignId, setCampaignId] = useState(null);
   const [sourceImage, setSourceImage] = useState(null);
@@ -72,21 +73,77 @@ const CreateCampaign = () => {
   ];
 
   const handleUpload = async (file) => {
-    setIsUploading(true); setUploadError(null);
+    setIsUploading(true); setUploadError(null); setUploadStatus('Uploading product image...');
     try {
       const asset = await uploadProductImage(file);
       const newSourceImage = {
         publicId: asset.publicId, secureUrl: asset.secureUrl, assetId: asset.assetId, format: asset.format,
         width: asset.width, height: asset.height, bytes: asset.bytes, originalFilename: asset.originalFilename,
       };
+      
+      console.log('[UPLOAD] source image reference', newSourceImage);
+
+      // Mask generation logic
+      try {
+        setUploadStatus('Preparing product mask...');
+        console.log('[MASK] segmentation started');
+        const { removeBackground } = await import('@imgly/background-removal');
+        const transparentBlob = await removeBackground(file);
+        
+        const maskBlob = await new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+            
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            for (let i = 0; i < data.length; i += 4) {
+              const alpha = data[i + 3];
+              if (alpha > 128) {
+                // Product (protected) -> Black
+                data[i] = 0; data[i+1] = 0; data[i+2] = 0; data[i+3] = 255;
+              } else {
+                // Background (editable) -> White
+                data[i] = 255; data[i+1] = 255; data[i+2] = 255; data[i+3] = 255;
+              }
+            }
+            ctx.putImageData(imageData, 0, 0);
+            canvas.toBlob(resolve, 'image/png');
+          };
+          img.onerror = reject;
+          img.src = URL.createObjectURL(transparentBlob);
+        });
+
+        console.log('[MASK] segmentation completed');
+        setUploadStatus('Uploading mask...');
+        const maskFile = new File([maskBlob], 'mask.png', { type: 'image/png' });
+        const maskAsset = await uploadProductImage(maskFile);
+        
+        newSourceImage.mask = {
+          publicId: maskAsset.publicId,
+          secureUrl: maskAsset.secureUrl,
+          assetId: maskAsset.assetId,
+          format: maskAsset.format
+        };
+        console.log('[MASK] mask reference', newSourceImage.mask);
+      } catch (err) {
+        console.error('Mask generation failed:', err);
+        // We continue gracefully without a mask
+      }
+
       setSourceImage(newSourceImage);
       
       // Auto-save phase 1
       const camp = await createCampaign({ name: creativeBrief.campaignName, sourceImage: newSourceImage, status: 'draft' });
       setCampaignId(camp._id);
+      console.log('[CAMPAIGN] source + mask persisted');
     } catch (err) {
       setUploadError(err.message || 'Upload failed.');
-    } finally { setIsUploading(false); }
+    } finally { setIsUploading(false); setUploadStatus(null); }
   };
 
   const startAnalysis = async () => {
@@ -201,6 +258,9 @@ const CreateCampaign = () => {
         });
       }
       
+      console.log('[GENERATE] source image reference', sourceImage);
+      console.log('[GENERATE] mask reference', sourceImage.mask);
+
       const result = await generateCampaignVariations({ 
         campaignId, 
         sourceImage, 
@@ -382,7 +442,7 @@ const CreateCampaign = () => {
                 {isUploading ? (
                   <div className="flex flex-col items-center">
                     <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 text-primary shadow-lg border border-primary/30 shadow-md animate-pulse"><div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div></div>
-                    <h3 className="text-lg font-semibold text-[#101828] mb-2">Uploading to Cloudinary...</h3>
+                    <h3 className="text-lg font-semibold text-[#101828] mb-2">{uploadStatus || 'Uploading...'}</h3>
                   </div>
                 ) : (
                   <>
