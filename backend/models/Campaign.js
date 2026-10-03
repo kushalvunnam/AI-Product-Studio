@@ -64,14 +64,20 @@ const CampaignSchema = new mongoose.Schema({
     publicId: String,
     modelUsed: String,
     promptUsed: String,
+    providerJobId: String,
+    provider: String,
+    error: String,
     status: {
       type: String,
-      default: 'success'
+      enum: ['pending', 'processing', 'completed', 'failed', 'timeout'],
+      default: 'pending'
     },
     createdAt: {
       type: Date,
       default: Date.now
-    }
+    },
+    completedAt: Date,
+    updatedAt: Date
   }],
   selectedVariation: {
     id: String,

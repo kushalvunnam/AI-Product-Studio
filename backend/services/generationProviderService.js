@@ -1,5 +1,5 @@
 const { generateImage: pollinationsGenerate } = require('./providers/pollinationsProvider');
-const { generateImage: aihordeGenerate } = require('./providers/aiHordeProvider');
+const { submitHordeJob: aihordeGenerate } = require('./providers/aiHordeProvider');
 
 const fetch = global.fetch;
 

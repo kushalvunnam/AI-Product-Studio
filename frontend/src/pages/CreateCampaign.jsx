@@ -277,57 +277,76 @@ const CreateCampaign = () => {
       if (result.isAsync && result.jobId) {
         setGenerationStatus(prev => ({ ...prev, message: 'AI generation started' }));
         
-        let pollCount = 0;
-        const maxPolls = 180; // 180 * 2s = 360 seconds timeout (AI Horde can take up to 5 mins)
         
-        if (pollingRef.current) clearInterval(pollingRef.current);
-        
-        pollingRef.current = setInterval(async () => {
-          try {
-            pollCount++;
-            if (pollCount > maxPolls) {
-              clearInterval(pollingRef.current);
-              setGenerationError('Generation is taking longer than expected.');
-              setIsGenerating(false);
-              return;
-            }
-            
-            const statusData = await getGenerationStatus(result.jobId);
-            const { status, mappedStatus, completed, total, variations, error } = statusData;
-            
-            setGenerationStatus({ 
-              message: `Generating variations... ${completed} / ${total} completed`,
-              completed, 
-              total 
-            });
-            
-            // Check for early partial success
-            const validVariations = variations ? variations.filter(v => v.secureUrl && v.status !== 'failed') : [];
-            const hasFailed = (variations && variations.some(v => v.status === 'failed' || v.error)) || (validVariations.length < variationCount);
-            
-            if (mappedStatus === 'completed' || mappedStatus === 'partial' || mappedStatus === 'failed') {
-              clearInterval(pollingRef.current);
+          if (pollingRef.current) clearTimeout(pollingRef.current);
+          
+          let pollFailures = 0;
+          let currentDelay = 2000;
+          
+          const poll = async () => {
+            try {
+              const statusData = await getGenerationStatus(result.jobId);
+              const { status, mappedStatus, completed, total, variations, error } = statusData;
               
-              if (validVariations.length > 0) {
-                setGeneratedResult({ success: true, variations: validVariations, hasFailed });
-                const firstVariant = validVariations[0];
-                setSelectedVariant(firstVariant);
-                if (campaignId) await updateCampaign(campaignId, { selectedVariation: firstVariant });
-                setIsGenerating(false);
-                setStep(5);
-              } else if (mappedStatus === 'failed' || error || (variations && variations.length > 0)) {
-                setGenerationError(error || 'Failed to generate valid variations.');
-                setIsGenerating(false);
-              } else {
-                setGenerationError('Generation failed on the server. Please try again.');
-                setIsGenerating(false);
+              let detailedMessage = `Generating variations... ${completed} / ${total} completed`;
+              if (variations && variations.length > 0) {
+                 const activeVars = variations.filter(v => v.status !== 'completed' && v.status !== 'failed');
+                 if (activeVars.length > 0) {
+                   const active = activeVars[0];
+                   const n = active.variationName || 'Variation';
+                   if (active.status === 'pending') detailedMessage = `: Queued on AI Horde...`;
+                   else if (active.status === 'processing') detailedMessage = `$pn: AI Horde processing...`;
+                   else if (active.status === 'timeout') detailedMessage = `$pn: Timeout on AI Horde.`;
+                 }
+              }
+              
+              setGenerationStatus({ 
+                message: detailedMessage,
+                completed, 
+                total 
+              });
+              
+              pollFailures = 0;
+              
+              const validVariations = variations ? variations.filter(v => v.secureUrl && v.status !== 'failed') : [];
+              const hasFailed = (variations && variations.some(v => v.status === 'failed' || v.status === 'timeout' || v.error)) || (validVariations.length < variationCount);
+              
+              if (mappedStatus === 'completed' || mappedStatus === 'partial' || mappedStatus === 'failed') {
+                if (validVariations.length > 0) {
+                  setGeneratedResult({ success: true, variations: validVariations, hasFailed });
+                  const firstVariant = validVariations[0];
+                  setSelectedVariant(firstVariant);
+                  if (campaignId) await updateCampaign(campaignId, { selectedVariation: firstVariant });
+                  isGenerating(false);
+                  setStep(5);
+                } else if (mappedStatus === 'failed' || error || (variations && variations.length > 0)) {
+                  setGenerationError(error || 'Failed to generate valid variations.');
+                  isGenerating(false);
+                } else {
+                  setGenerationError('Generation failed on the server. Please try again.');
+                  isGenerating(false);
+                }
+                return;
+              }
+            } catch (pollErr) {
+              console.error('Polling error:', pollErr);
+              pollFailures++;
+              if (pollFailures > 10) {
+                 setGenerationError('Lost connection to server while polling.');
+                 isGenerating(false);
+                 return;
               }
             }
-          } catch (pollErr) {
-            console.error('Polling error:', pollErr);
-            // Don't kill polling on a transient network error, just let it loop until timeout
-          }
-        }, 2000);
+            
+            if (currentDelay < 3000) currentDelay = 3000;
+            else if (currentDelay < 5000) currentDelay = 5000;
+            else if (currentDelay < 8000) currentDelay = 8000;
+            else currentDelay = 10000;
+            
+            pollingRef.current = setTimeout(poll, currentDelay);
+          };
+          
+          pollingRef.current = setTimeout(poll, currentDelay);
       } else {
         // Sync response
         if (result && result.variations && result.variations.length > 0) {
@@ -443,8 +462,8 @@ const CreateCampaign = () => {
           <div className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-primary -z-10 transition-all duration-500" style={{ width: `${((step - 1) / (steps.length - 1)) * 100}%` }}></div>
           {steps.map((s) => {
             const Icon = s.icon;
-            const isActive = s.num === step;
-            const isCompleted = s.num < step;
+            const isActive = s.num === ste;
+            const isCompleted = s.num < ste;
             return (
               <div key={s.num} className="flex flex-col items-center gap-2 relative z-10">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors duration-300 ${isActive ? 'bg-primary text-[#101828] ring-4 ring-primary-500/20' : isCompleted ? 'bg-primary text-slate-950 shadow-md' : 'bg-slate-50Highlight text-[#52627A] border border-slate-200'}`}>

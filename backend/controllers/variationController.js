@@ -1,35 +1,36 @@
 const { generateVariations } = require('../services/variationService');
 const { getConfiguredModels } = require('../services/generationProviderService');
 const Campaign = require('../models/Campaign');
+const { checkHordeJob } = require('../services/providers/aiHordeProvider');
 
-  const generateCampaignVariations = async (req, res) => {
-    try {
-      let { campaignId, sourceImage, analysis, creativeBrief, model, variationCount } = req.body;
-      
-      console.log('[API /variations] received source image reference:', sourceImage ? 'Yes' : 'No');
+const generateCampaignVariations = async (req, res) => {
+  try {
+    let { campaignId, sourceImage, analysis, creativeBrief, model, variationCount } = req.body;
+    
+    console.log('[API /variations] received source image reference:', sourceImage ? 'Yes' : 'No');
 
-      if (campaignId) {
-        const campaign = await Campaign.findById(campaignId);
-        if (campaign && campaign.sourceImage) {
-           sourceImage = campaign.sourceImage;
-        }
+    if (campaignId) {
+      const campaign = await Campaign.findById(campaignId);
+      if (campaign && campaign.sourceImage) {
+         sourceImage = campaign.sourceImage;
       }
-  
-      if (!sourceImage || !sourceImage.publicId || (!sourceImage.secure_url && !sourceImage.secureUrl && !sourceImage.url)) {
-        return res.status(400).json({ 
-          success: false, 
-          code: 'SOURCE_IMAGE_MISSING',
-          message: 'Source image is missing. Please return to Upload Product and upload the image again.' 
-        });
-      }
+    }
 
-      if (sourceImage.mask) {
-        if (!sourceImage.mask.publicId || (!sourceImage.mask.secure_url && !sourceImage.mask.secureUrl && !sourceImage.mask.url)) {
-          console.warn('[MASK] Invalid mask object found attached to sourceImage');
-        } else {
-          console.log('[GENERATE] mask reference validated', sourceImage.mask.publicId);
-        }
+    if (!sourceImage || !sourceImage.publicId || (!sourceImage.secure_url && !sourceImage.secureUrl && !sourceImage.url)) {
+      return res.status(400).json({ 
+        success: false, 
+        code: 'SOURCE_IMAGE_MISSING',
+        message: 'Source image is missing. Please return to Upload Product and upload the image again.' 
+      });
+    }
+
+    if (sourceImage.mask) {
+      if (!sourceImage.mask.publicId || (!sourceImage.mask.secure_url && !sourceImage.mask.secureUrl && !sourceImage.mask.url)) {
+        console.warn('[MASK] Invalid mask object found attached to sourceImage');
+      } else {
+        console.log('[GENERATE] mask reference validated', sourceImage.mask.publicId);
       }
+    }
 
     const count = parseInt(variationCount, 10) || 4;
     
@@ -49,47 +50,7 @@ const Campaign = require('../models/Campaign');
       });
     }
 
-    if (campaignId) {
-      // Async background generation
-      
-      // We set status to 'generating' initially so frontend knows it started
-      await Campaign.findByIdAndUpdate(campaignId, { status: 'generating', errorMessage: '' });
-
-      generateVariations({
-        sourceImage,
-        analysis,
-        creativeBrief,
-        model: model || { mode: 'auto', preference: 'balanced' },
-        count,
-        onProgress: async (progressInfo) => {
-          // Update DB with partial variations to reflect progress
-          await Campaign.findByIdAndUpdate(campaignId, {
-            variations: progressInfo.variations
-          });
-        }
-      }).then(async (result) => {
-        if (result.variations.length > 0) {
-          // Complete with partial or full success
-          await Campaign.findByIdAndUpdate(campaignId, { variations: result.variations, status: 'review' });
-        } else {
-          // Complete failure
-          const errMsg = result.failed && result.failed.length > 0 ? result.failed[0].error : 'All variations failed to generate.';
-          await Campaign.findByIdAndUpdate(campaignId, { status: 'failed', errorMessage: errMsg });
-        }
-      }).catch(async (err) => {
-        console.error('Async generation failed:', err);
-        await Campaign.findByIdAndUpdate(campaignId, { status: 'failed', errorMessage: err.message || 'Generation failed on the server.' });
-      });
-
-      return res.status(202).json({
-        success: true,
-        message: 'Generation started asynchronously.',
-        isAsync: true,
-        jobId: campaignId
-      });
-    }
-
-    // Fallback synchronous generation
+    // Synchronous generation start (stateless, so we await submitting to Horde)
     const { variations, failed } = await generateVariations({
       sourceImage,
       analysis,
@@ -98,7 +59,43 @@ const Campaign = require('../models/Campaign');
       count
     });
 
-    if (variations.length === 0) {
+    const hasProcessing = variations.some(v => v.status === 'processing');
+    const hasCompleted = variations.some(v => v.status === 'completed');
+    const allFailed = variations.length === 0 && failed.length > 0;
+    
+    if (campaignId) {
+      let nextStatus = 'generating';
+      let errorMessage = '';
+      
+      if (allFailed) {
+        nextStatus = 'failed';
+        errorMessage = failed[0].error || 'All variations failed to submit.';
+      } else if (!hasProcessing && hasCompleted) {
+        nextStatus = 'review';
+      }
+      
+      // If variations already exist (e.g. retry), we append the new ones or replace?
+      // Typically, missing variations are requested and appended. We'll append them.
+      const campaign = await Campaign.findById(campaignId);
+      const newVariations = [...(campaign.variations || []), ...variations];
+
+      await Campaign.findByIdAndUpdate(campaignId, { 
+        status: nextStatus,
+        errorMessage,
+        variations: newVariations
+      });
+
+      if (hasProcessing) {
+        return res.status(202).json({
+          success: true,
+          message: 'Generation submitted to queue asynchronously.',
+          isAsync: true,
+          jobId: campaignId
+        });
+      }
+    }
+
+    if (allFailed) {
       return res.status(500).json({ 
         success: false, 
         message: 'All variations failed to generate. Please try again.',
@@ -130,19 +127,65 @@ const getVariationStatus = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Job/Campaign not found' });
     }
 
-    const total = 4;
-    const completedVariations = campaign.variations ? campaign.variations.length : 0;
+    let hasUpdates = false;
+    let anyProcessing = false;
+
+    // Check statuses statelessly
+    if (campaign.variations && campaign.variations.length > 0) {
+      for (let i = 0; i < campaign.variations.length; i++) {
+        const v = campaign.variations[i];
+        if (v.status === 'processing' && v.providerJobId && v.provider === 'aihorde') {
+          // Check timestamp for 10 min timeout (600,000ms)
+          const ageMs = Date.now() - new Date(v.createdAt).getTime();
+          if (ageMs > 600000) {
+             v.status = 'timeout';
+             v.error = 'Job timed out after 10 minutes.';
+             v.updatedAt = new Date();
+             hasUpdates = true;
+             continue;
+          }
+
+          const statusRes = await checkHordeJob(v.providerJobId);
+          if (statusRes.status !== 'processing' || statusRes.secureUrl) {
+            v.status = statusRes.status;
+            v.error = statusRes.error;
+            v.updatedAt = new Date();
+            
+            if (statusRes.secureUrl) {
+              v.secureUrl = statusRes.secureUrl;
+              v.publicId = statusRes.publicId;
+              v.assetId = statusRes.assetId;
+            }
+            if (v.status === 'completed' || v.status === 'failed') {
+               v.completedAt = new Date();
+            }
+            hasUpdates = true;
+          } else {
+             anyProcessing = true;
+          }
+        }
+      }
+      
+      if (hasUpdates) {
+        const hasCompleted = campaign.variations.some(v => v.status === 'completed');
+        if (!anyProcessing) {
+           campaign.status = hasCompleted ? 'review' : 'failed';
+        }
+        await campaign.save();
+      }
+    }
+
+    const total = 4; // Expected limit in UI
+    const completedVariations = campaign.variations ? campaign.variations.filter(v => v.status === 'completed').length : 0;
     
-    let status = 'processing';
-    if (campaign.status === 'review') status = 'completed';
-    if (campaign.status === 'failed') status = 'failed';
-    if (campaign.status === 'completed') status = 'completed';
-    if (status === 'completed' && completedVariations < total) status = 'partial'; 
+    let mappedStatus = campaign.status;
+    if (campaign.status === 'review') mappedStatus = 'completed';
+    if (mappedStatus === 'completed' && completedVariations < total) mappedStatus = 'partial'; 
     
     return res.status(200).json({
       success: true,
       status: campaign.status, 
-      mappedStatus: status, 
+      mappedStatus, 
       completed: completedVariations,
       total: total,
       variations: campaign.variations || [],
