@@ -6,8 +6,12 @@ const generateCampaignVariations = async (req, res) => {
   try {
     const { campaignId, sourceImage, analysis, creativeBrief, model, variationCount } = req.body;
 
-    if (!sourceImage || !sourceImage.publicId) {
-      return res.status(400).json({ success: false, message: 'Source image publicId is required.' });
+    if (!sourceImage || !sourceImage.publicId || (!sourceImage.secure_url && !sourceImage.url)) {
+      return res.status(400).json({ 
+        success: false, 
+        code: 'SOURCE_IMAGE_MISSING',
+        message: 'Source image is missing. Please return to Upload Product and upload the image again.' 
+      });
     }
 
     const count = parseInt(variationCount, 10) || 4;

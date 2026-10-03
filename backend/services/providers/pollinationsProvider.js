@@ -3,6 +3,13 @@ const cloudinary = require('cloudinary').v2;
 
 const generateImage = async ({ prompt, referenceAsset, model }) => {
   try {
+    if (referenceAsset && (referenceAsset.publicId || referenceAsset.url || referenceAsset.secure_url)) {
+      throw {
+        code: "SOURCE_IMAGE_TRANSFORMATION_UNSUPPORTED",
+        message: "The selected free provider cannot reliably transform the uploaded source image."
+      };
+    }
+
     const finalPrompt = `${prompt}. High quality, detailed, realistic product shot.`;
     const seed = Math.floor(Math.random() * 1000000);
     
@@ -99,7 +106,7 @@ const generateImage = async ({ prompt, referenceAsset, model }) => {
     };
 
   } catch (error) {
-    if (error.code === 'FREE_PROVIDER_UNAVAILABLE') {
+    if (error.code === 'FREE_PROVIDER_UNAVAILABLE' || error.code === 'SOURCE_IMAGE_TRANSFORMATION_UNSUPPORTED') {
       throw error;
     }
     
