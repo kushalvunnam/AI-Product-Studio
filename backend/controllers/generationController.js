@@ -10,6 +10,16 @@ const getModels = async (req, res) => {
   }
 };
 
+const getDiagnostics = async (req, res) => {
+  try {
+    const { getProviderDiagnostics } = require('../services/generationProviderService');
+    const diagnostics = await getProviderDiagnostics();
+    return res.status(200).json({ success: true, diagnostics });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to run diagnostics' });
+  }
+};
+
 const generateCampaignImage = async (req, res) => {
   try {
     const { sourceImage, analysis, creativeBrief, model } = req.body;
@@ -69,5 +79,6 @@ const generateCampaignImage = async (req, res) => {
 
 module.exports = {
   getModels,
-  generateCampaignImage
+  generateCampaignImage,
+  getDiagnostics
 };
