@@ -3,7 +3,7 @@ const cloudinary = require('cloudinary').v2;
 
 const generateImage = async ({ prompt, referenceAsset, model }) => {
   try {
-    if (referenceAsset && (referenceAsset.publicId || referenceAsset.url || referenceAsset.secure_url)) {
+    if (referenceAsset && (referenceAsset.publicId || referenceAsset.url || referenceAsset.secure_url || referenceAsset.secureUrl)) {
       throw {
         code: "SOURCE_IMAGE_TRANSFORMATION_UNSUPPORTED",
         message: "The selected free provider cannot reliably transform the uploaded source image."

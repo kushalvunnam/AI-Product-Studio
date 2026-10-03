@@ -2,17 +2,26 @@ const { generateVariations } = require('../services/variationService');
 const { getConfiguredModels } = require('../services/generationProviderService');
 const Campaign = require('../models/Campaign');
 
-const generateCampaignVariations = async (req, res) => {
-  try {
-    const { campaignId, sourceImage, analysis, creativeBrief, model, variationCount } = req.body;
+  const generateCampaignVariations = async (req, res) => {
+    try {
+      let { campaignId, sourceImage, analysis, creativeBrief, model, variationCount } = req.body;
+      
+      console.log('[API /variations] received source image reference:', sourceImage ? 'Yes' : 'No');
 
-    if (!sourceImage || !sourceImage.publicId || (!sourceImage.secure_url && !sourceImage.url)) {
-      return res.status(400).json({ 
-        success: false, 
-        code: 'SOURCE_IMAGE_MISSING',
-        message: 'Source image is missing. Please return to Upload Product and upload the image again.' 
-      });
-    }
+      if (campaignId) {
+        const campaign = await Campaign.findById(campaignId);
+        if (campaign && campaign.sourceImage) {
+           sourceImage = campaign.sourceImage;
+        }
+      }
+  
+      if (!sourceImage || !sourceImage.publicId || (!sourceImage.secure_url && !sourceImage.secureUrl && !sourceImage.url)) {
+        return res.status(400).json({ 
+          success: false, 
+          code: 'SOURCE_IMAGE_MISSING',
+          message: 'Source image is missing. Please return to Upload Product and upload the image again.' 
+        });
+      }
 
     const count = parseInt(variationCount, 10) || 4;
     
