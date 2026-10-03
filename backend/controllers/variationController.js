@@ -17,6 +17,7 @@ const generateCampaignVariations = async (req, res) => {
     }
 
     if (!sourceImage || !sourceImage.publicId || (!sourceImage.secure_url && !sourceImage.secureUrl && !sourceImage.url)) {
+      console.log('[DIAGNOSTIC] sourceImage missing or invalid', JSON.stringify(sourceImage || {}));
       return res.status(400).json({ 
         success: false, 
         code: 'SOURCE_IMAGE_MISSING',
@@ -30,27 +31,31 @@ const generateCampaignVariations = async (req, res) => {
       } else {
         console.log('[GENERATE] mask reference validated', sourceImage.mask.publicId);
       }
+    } else {
+      console.warn('[MASK] No mask attached to sourceImage');
     }
 
-    const count = parseInt(variationCount, 10) || 4;
+    // Force n=1 for diagnostics as requested
+    const count = 1;
     
-    // Synchronous validation of model availability
     const resolvedModelId = model?.id || 'auto';
     const availableModels = await getConfiguredModels();
     const modelConfig = availableModels.find(m => m.id === resolvedModelId) || availableModels.find(m => m.id === 'auto');
     
     if (!modelConfig || !modelConfig.available) {
+      console.log('[DIAGNOSTIC] Model not available:', resolvedModelId, modelConfig);
       return res.status(400).json({
         success: false,
         error: {
           code: !modelConfig?.configured ? 'MISSING_API_KEY' : 'MODEL_NOT_AVAILABLE',
           provider: modelConfig?.provider || 'unknown'
         },
-        message: modelConfig?.reason || `${modelConfig?.provider ? modelConfig.provider.charAt(0).toUpperCase() + modelConfig.provider.slice(1) : 'Requested'} generation is not configured on this server.`
+        message: modelConfig?.reason || 'Requested generation is not configured on this server.'
       });
     }
 
-    // Synchronous generation start (stateless, so we await submitting to Horde)
+    console.log('[DIAGNOSTIC] Starting generateVariations. Model:', modelConfig.id, 'Count:', count);
+
     const { variations, failed } = await generateVariations({
       sourceImage,
       analysis,
@@ -58,6 +63,11 @@ const generateCampaignVariations = async (req, res) => {
       model: model || { mode: 'auto', preference: 'balanced' },
       count
     });
+
+    console.log('[DIAGNOSTIC] generateVariations returned:', { variationsCount: variations.length, failedCount: failed.length });
+    if (failed.length > 0) {
+      console.log('[DIAGNOSTIC] Failed variations details:', JSON.stringify(failed, null, 2));
+    }
 
     const hasProcessing = variations.some(v => v.status === 'processing');
     const hasCompleted = variations.some(v => v.status === 'completed');
@@ -74,8 +84,6 @@ const generateCampaignVariations = async (req, res) => {
         nextStatus = 'review';
       }
       
-      // If variations already exist (e.g. retry), we append the new ones or replace?
-      // Typically, missing variations are requested and appended. We'll append them.
       const campaign = await Campaign.findById(campaignId);
       const newVariations = [...(campaign.variations || []), ...variations];
 
@@ -96,9 +104,13 @@ const generateCampaignVariations = async (req, res) => {
     }
 
     if (allFailed) {
+      // EXPLICITLY RETURN THE ACTUAL ERROR INSTEAD OF GENERIC "All variations failed"
+      const realError = failed[0];
       return res.status(500).json({ 
         success: false, 
-        message: 'All variations failed to generate. Please try again.',
+        code: "AI_HORDE_GENERATION_FAILED",
+        message: "AI Horde generation failed: " + (realError.error || 'Unknown failure'),
+        details: realError,
         failed
       });
     }
@@ -113,6 +125,7 @@ const generateCampaignVariations = async (req, res) => {
     console.error('Variation Controller Error:', error);
     return res.status(500).json({ 
       success: false, 
+      code: "AI_HORDE_GENERATION_FAILED",
       message: error.message || 'Variation generation failed.' 
     });
   }
@@ -130,22 +143,23 @@ const getVariationStatus = async (req, res) => {
     let hasUpdates = false;
     let anyProcessing = false;
 
-    // Check statuses statelessly
     if (campaign.variations && campaign.variations.length > 0) {
       for (let i = 0; i < campaign.variations.length; i++) {
         const v = campaign.variations[i];
         if (v.status === 'processing' && v.providerJobId && v.provider === 'aihorde') {
-          // Check timestamp for 10 min timeout (600,000ms)
           const ageMs = Date.now() - new Date(v.createdAt).getTime();
-          if (ageMs > 600000) {
+          if (ageMs > 1200000) { // 20 minutes
              v.status = 'timeout';
-             v.error = 'Job timed out after 10 minutes.';
+             v.error = 'Job timed out after 20 minutes.';
              v.updatedAt = new Date();
              hasUpdates = true;
              continue;
           }
 
+          console.log(`[DIAGNOSTIC] Polling status for ${v.providerJobId}`);
           const statusRes = await checkHordeJob(v.providerJobId);
+          console.log(`[DIAGNOSTIC] Poll result for ${v.providerJobId}:`, statusRes);
+          
           if (statusRes.status !== 'processing' || statusRes.secureUrl) {
             v.status = statusRes.status;
             v.error = statusRes.error;
@@ -175,7 +189,7 @@ const getVariationStatus = async (req, res) => {
       }
     }
 
-    const total = 4; // Expected limit in UI
+    const total = 4;
     const completedVariations = campaign.variations ? campaign.variations.filter(v => v.status === 'completed').length : 0;
     
     let mappedStatus = campaign.status;
