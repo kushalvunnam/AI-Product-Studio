@@ -294,9 +294,9 @@ const CreateCampaign = () => {
                  if (activeVars.length > 0) {
                    const active = activeVars[0];
                    const n = active.variationName || 'Variation';
-                   if (active.status === 'pending') detailedMessage = `: Queued on AI Horde...`;
-                   else if (active.status === 'processing') detailedMessage = `$pn: AI Horde processing...`;
-                   else if (active.status === 'timeout') detailedMessage = `$pn: Timeout on AI Horde.`;
+                   if (active.status === 'pending') detailedMessage = `${n}: Queued on AI Horde...`;
+                   else if (active.status === 'processing') detailedMessage = `${n}: AI Horde processing...`;
+                   else if (active.status === 'timeout') detailedMessage = `${n}: Timeout on AI Horde.`;
                  }
               }
               
