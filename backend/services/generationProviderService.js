@@ -1,18 +1,19 @@
-const { generateImage: cloudinaryGenerate } = require('./providers/cloudinaryProvider');
-const { generateImageWithGoogle } = require('./providers/googleProvider');
 const { generateImage: pollinationsGenerate } = require('./providers/pollinationsProvider');
-const { generateImage: openaiGenerate } = require('./providers/openaiProvider');
-const { generateImage: fluxGenerate } = require('./providers/fluxProvider');
 const { generateImage: aihordeGenerate } = require('./providers/aiHordeProvider');
 
 const fetch = global.fetch;
 
+// Keep only providers that are currently implemented and usable in this application.
+// Cloudinary remains the storage layer for generated assets, but its image-generation
+// provider is intentionally not exposed here because the account previously returned
+// a model-access error. FLUX 2 Pro, GPT Image 2, Nano Banana 2, and Recraft are not
+// exposed until their actual generation integrations are verified end-to-end.
 const IMAGE_MODELS = [
   {
     id: "free-aihorde",
     label: "AI Horde — Free Image-to-Image",
     provider: "aihorde",
-    description: "Free product preservation",
+    description: "Free product-preserving image-to-image generation",
     requiresApiKey: false,
     requires: [],
     freeTier: true,
@@ -22,55 +23,14 @@ const IMAGE_MODELS = [
     id: "free-pollinations",
     label: "Open Source Free",
     provider: "pollinations",
-    description: "Free public image generation",
+    description: "Free text-to-image generation",
     requiresApiKey: false,
     requires: [],
     freeTier: true,
     capabilities: { textToImage: true, imageToImage: false, inpainting: false, productPreservation: false }
-  },
-  {
-    id: "auto",
-    label: "Auto — Recommended",
-    provider: "cloudinary",
-    description: "Recommended for most campaigns",
-    requiresApiKey: true,
-    requires: ["CLOUDINARY_API_KEY", "CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_SECRET"],
-    freeTier: false,
-    capabilities: { textToImage: true, imageToImage: true, inpainting: true, productPreservation: true }
-  },
-  {
-    id: "nano-banana-2",
-    label: "Nano Banana 2",
-    provider: "google",
-    description: "Google image generation",
-    requiresApiKey: true,
-    requires: ["GOOGLE_AI_API_KEY"],
-    freeTier: false,
-    capabilities: { textToImage: true, imageToImage: false, inpainting: false, productPreservation: false }
-  },
-  {
-    id: "flux-2-pro",
-    label: "FLUX 2 Pro",
-    provider: "flux",
-    description: "High-quality image generation",
-    requiresApiKey: true,
-    requires: ["FLUX_API_KEY"],
-    freeTier: false,
-    capabilities: { textToImage: true, imageToImage: false, inpainting: false, productPreservation: false }
-  },
-  {
-    id: "gpt-image-2",
-    label: "GPT Image 2",
-    provider: "openai",
-    description: "OpenAI image generation",
-    requiresApiKey: true,
-    requires: ["OPENAI_API_KEY"],
-    freeTier: false,
-    capabilities: { textToImage: true, imageToImage: false, inpainting: false, productPreservation: false }
   }
 ];
 
-// Cache for pollinations check
 let pollinationsStatusCache = { available: true, lastChecked: 0 };
 
 const checkPollinationsAvailability = async () => {
@@ -78,20 +38,20 @@ const checkPollinationsAvailability = async () => {
   if (now - pollinationsStatusCache.lastChecked < 60000) {
     return pollinationsStatusCache.available;
   }
-  
+
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
-    // Lightweight check
     const endpoint = 'https://image.pollinations.ai/prompt/test?width=10&height=10&nologo=true';
     const headers = {};
+
     if (process.env.POLLINATIONS_API_KEY) {
-      headers['Authorization'] = `Bearer ${process.env.POLLINATIONS_API_KEY}`;
+      headers.Authorization = `Bearer ${process.env.POLLINATIONS_API_KEY}`;
     }
-    
+
     const res = await fetch(endpoint, { method: 'HEAD', headers, signal: controller.signal });
     clearTimeout(timeout);
-    
+
     pollinationsStatusCache.available = res.ok;
     pollinationsStatusCache.lastChecked = now;
     return res.ok;
@@ -103,7 +63,6 @@ const checkPollinationsAvailability = async () => {
 };
 
 const getConfiguredModels = async () => {
-  // Check pollinations dynamically
   const isPollinationsAvailable = await checkPollinationsAvailability();
 
   return IMAGE_MODELS.map(model => {
@@ -118,19 +77,9 @@ const getConfiguredModels = async () => {
     if (!configured) {
       available = false;
       reason = 'API Key Missing';
-    } else {
-      if (model.provider === 'google' && configured) {
-         // Google API has a strict 0 limit in the current tier
-         available = false;
-         reason = 'Quota Exceeded / Free Tier Blocked';
-      }
-      
-      if (model.provider === 'pollinations') {
-        if (!isPollinationsAvailable) {
-          available = false;
-          reason = 'Free generation temporarily unavailable';
-        }
-      }
+    } else if (model.provider === 'pollinations' && !isPollinationsAvailable) {
+      available = false;
+      reason = 'Free generation temporarily unavailable';
     }
 
     return {
@@ -147,59 +96,54 @@ const getConfiguredModels = async () => {
   });
 };
 
-const routeGeneration = async ({ prompt, referenceAsset, model, count, settings }) => {
-  let modelConfig = IMAGE_MODELS.find(m => m.id === model.id);
-  
+const routeGeneration = async ({ prompt, referenceAsset, model, count }) => {
+  const modelId = model?.id;
+  const modelConfig = IMAGE_MODELS.find(m => m.id === modelId);
+
   if (!modelConfig) {
-    if (model.mode === 'auto') {
-      modelConfig = IMAGE_MODELS.find(m => m.id === 'auto');
-    } else {
-      throw { code: "MODEL_NOT_FOUND", message: `Model ${model.id} is not recognized.` };
-    }
+    throw {
+      code: "MODEL_NOT_FOUND",
+      message: `Model ${modelId || 'unknown'} is not available.`
+    };
   }
 
-  // Check availability dynamically
   const modelsConf = await getConfiguredModels();
   const currentStatus = modelsConf.find(m => m.id === modelConfig.id);
-  
-  if (!currentStatus.configured) {
+
+  if (!currentStatus?.configured) {
     throw {
       code: "MISSING_API_KEY",
       provider: modelConfig.provider,
       model: modelConfig.id,
-      message: `${modelConfig.provider.charAt(0).toUpperCase() + modelConfig.provider.slice(1)} API key is missing.`
+      message: `${modelConfig.provider} API key is missing.`
     };
   }
 
-  if (!currentStatus.available) {
+  if (!currentStatus?.available) {
     throw {
       code: "MODEL_NOT_AVAILABLE",
       provider: modelConfig.provider,
       model: modelConfig.id,
-      message: `${modelConfig.provider.charAt(0).toUpperCase() + modelConfig.provider.slice(1)} model is unavailable: ${currentStatus.reason}`
+      message: `${modelConfig.provider} model is unavailable: ${currentStatus.reason}`
     };
   }
 
-  if (process.env.NODE_ENV === 'development' || true) {
-    console.log(`[PROVIDER SELECTED] ${model.id}`);
-    console.log(`[PROVIDER ROUTED] ${modelConfig.provider}`);
-  }
+  console.log(`[PROVIDER SELECTED] ${modelConfig.id}`);
+  console.log(`[PROVIDER ROUTED] ${modelConfig.provider}`);
 
   switch (modelConfig.provider) {
-    case 'cloudinary':
+    case 'aihorde':
       try {
-        return await cloudinaryGenerate({ prompt, referenceAsset, model: { id: modelConfig.id, mode: modelConfig.id === 'auto' ? 'auto' : 'specific' }, settings });
+        return await aihordeGenerate({ prompt, referenceAsset, count });
       } catch (err) {
         throw {
-          code: err.code || (err.message && err.message.includes('allow this model') ? 'MODEL_NOT_AVAILABLE' : 
-                err.message && err.message.includes('timeout') ? 'TIMEOUT' :
-                err.message && err.message.includes('rate limit') ? 'RATE_LIMITED' : 'GENERATION_ERROR'),
-          provider: 'cloudinary',
+          code: err.code || 'GENERATION_ERROR',
+          provider: 'aihorde',
           model: modelConfig.id,
           message: err.message
         };
       }
-    
+
     case 'pollinations':
       try {
         return await pollinationsGenerate({ prompt, referenceAsset, model: modelConfig.id });
@@ -211,27 +155,6 @@ const routeGeneration = async ({ prompt, referenceAsset, model, count, settings 
           message: err.message
         };
       }
-      
-    case 'aihorde':
-      try {
-        return await aihordeGenerate({ prompt, referenceAsset });
-      } catch (err) {
-        throw {
-          code: err.code || 'GENERATION_ERROR',
-          provider: 'aihorde',
-          model: modelConfig.id,
-          message: err.message
-        };
-      }
-
-    case 'google':
-      return await generateImageWithGoogle(referenceAsset.url, prompt, modelConfig.id, count || 1);
-      
-    case 'flux':
-      return await fluxGenerate();
-
-    case 'openai':
-      return await openaiGenerate();
 
     default:
       throw { code: "INVALID_PROVIDER", message: "Unsupported image generation provider." };
