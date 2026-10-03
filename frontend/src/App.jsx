@@ -8,6 +8,7 @@ import Campaigns from './pages/Campaigns';
 import Templates from './pages/Templates';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
+import BackgroundRemovalTest from './pages/BackgroundRemovalTest';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="create" element={<CreateCampaign />} />
         <Route path="assets" element={<Assets />} />
+        <Route path="mask-test" element={<BackgroundRemovalTest />} />
         <Route path="campaigns/:id" element={<CampaignDetails />} />
         <Route path="campaigns" element={<Campaigns />} />
         <Route path="templates" element={<Templates />} />
