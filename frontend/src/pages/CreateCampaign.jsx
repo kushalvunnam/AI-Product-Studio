@@ -111,6 +111,79 @@ const CreateCampaign = () => {
     }
   };
 
+  
+  const retryFailedVariations = async () => {
+    if (!generatedResult || !generatedResult.variations) return;
+    const missingCount = variationCount - generatedResult.variations.length;
+    if (missingCount <= 0) return;
+    
+    setIsGenerating(true);
+    setStep(4);
+    setGenerationError(null);
+    setGenerationStatus({ message: 'Retrying failed variations...', completed: 0, total: missingCount });
+    
+    try {
+      const result = await generateCampaignVariations({ 
+        campaignId, 
+        sourceImage, 
+        analysis, 
+        creativeBrief, 
+        model: modelSettings, 
+        variationCount: missingCount 
+      });
+      
+      if (result.isAsync) {
+        let attempts = 0;
+        pollingRef.current = setInterval(async () => {
+          try {
+            attempts++;
+            if (attempts > 30) {
+              clearInterval(pollingRef.current);
+              setGenerationError('Generation timed out. Please try again.');
+              setIsGenerating(false);
+              return;
+            }
+            
+            const statusData = await getGenerationStatus(result.jobId);
+            const { mappedStatus, completed, total, variations, error } = statusData;
+            
+            setGenerationStatus({ 
+              message: `Retrying ${missingCount} variations...`, 
+              completed, 
+              total 
+            });
+            
+            const validVariations = variations ? variations.filter(v => v.secureUrl && v.status !== 'failed') : [];
+            const hasFailed = (variations && variations.some(v => v.status === 'failed' || v.error)) || (validVariations.length < variationCount);
+            
+            if (mappedStatus === 'completed' || mappedStatus === 'partial' || mappedStatus === 'failed') {
+              clearInterval(pollingRef.current);
+              
+              if (validVariations.length > 0) {
+                // Merge the new valid variations with the old ones
+                const allVariations = [...generatedResult.variations, ...validVariations];
+                setGeneratedResult({ success: true, variations: allVariations, hasFailed: allVariations.length < variationCount });
+                setIsGenerating(false);
+                setStep(5);
+              } else if (mappedStatus === 'failed' || error) {
+                setGenerationError(error || 'Failed to retry variations.');
+                setIsGenerating(false);
+              } else {
+                setGenerationError('Generation failed on the server. Please try again.');
+                setIsGenerating(false);
+              }
+            }
+          } catch (pollErr) {
+            console.error('Polling error:', pollErr);
+          }
+        }, 2000);
+      }
+    } catch (err) {
+      setGenerationError(err.message || 'Generation failed.');
+      setIsGenerating(false);
+    }
+  };
+
   const startGeneration = async () => {
     if (!sourceImage || !analysis || isGenerating) return;
     setStep(4); 
@@ -166,7 +239,7 @@ const CreateCampaign = () => {
             
             // Check for early partial success
             const validVariations = variations ? variations.filter(v => v.secureUrl && v.status !== 'failed') : [];
-            const hasFailed = variations && variations.some(v => v.status === 'failed' || v.error);
+            const hasFailed = (variations && variations.some(v => v.status === 'failed' || v.error)) || (validVariations.length < variationCount);
             
             if (mappedStatus === 'completed' || mappedStatus === 'partial' || mappedStatus === 'failed') {
               clearInterval(pollingRef.current);

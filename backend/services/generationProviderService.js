@@ -1,17 +1,11 @@
 const { generateImage: cloudinaryGenerate } = require('./providers/cloudinaryProvider');
 const { generateImageWithGoogle } = require('./providers/googleProvider');
-const { generateImage: freeGenerate } = require('./providers/freeImageProvider');
+const { generateImage: pollinationsGenerate } = require('./providers/pollinationsProvider');
+const { generateImage: openaiGenerate } = require('./providers/openaiProvider');
+const { generateImage: fluxGenerate } = require('./providers/fluxProvider');
+const { generateImage: recraftGenerate } = require('./providers/recraftProvider');
 
 const IMAGE_MODELS = [
-  {
-    id: "auto",
-    label: "Auto — Recommended",
-    provider: "cloudinary",
-    description: "Recommended for most campaigns",
-    requiresApiKey: true,
-    requires: ["CLOUDINARY_API_KEY", "CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_SECRET"],
-    freeTier: false
-  },
   {
     id: "free-pollinations",
     label: "Open Source Free",
@@ -20,6 +14,15 @@ const IMAGE_MODELS = [
     requiresApiKey: false,
     requires: [],
     freeTier: true
+  },
+  {
+    id: "auto",
+    label: "Auto — Recommended",
+    provider: "cloudinary",
+    description: "Recommended for most campaigns",
+    requiresApiKey: true,
+    requires: ["CLOUDINARY_API_KEY", "CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_SECRET"],
+    freeTier: false
   },
   {
     id: "nano-banana-2",
@@ -61,27 +64,34 @@ const IMAGE_MODELS = [
 
 const getConfiguredModels = () => {
   return IMAGE_MODELS.map(model => {
-    // Check if all required env vars are present
+    let configured = true;
     let available = true;
+    let reason = '';
+
     if (model.requires.length > 0) {
-      available = model.requires.every(key => !!process.env[key]);
+      configured = model.requires.every(key => !!process.env[key]);
     }
-    
-    // For free provider, we can always mark it available
-    // For Google, since we explicitly know image generation has a limit of 0 for standard free tier without billing,
-    // we should only mark it available if it's truly tested, but the instruction says:
-    // "Do not expose Google models as AVAILABLE merely because GOOGLE_AI_API_KEY exists. 
-    // The provider must have actual image-generation code implemented and tested."
-    // We'll let the routing logic reject it with MODEL_NOT_IMPLEMENTED if not supported.
-    
+
+    if (!configured) {
+      available = false;
+      reason = 'API Key Missing';
+    } else {
+      if (model.provider === 'google' && configured) {
+         // Google API has a strict 0 limit in the current tier
+         available = false;
+         reason = 'Quota Exceeded / Free Tier Blocked';
+      }
+    }
+
     return {
       id: model.id,
-      label: model.label,
+      name: model.label,
       provider: model.provider,
-      description: model.description,
       available,
       requiresApiKey: model.requiresApiKey,
-      freeTier: model.freeTier
+      freeTier: model.freeTier,
+      configured,
+      reason
     };
   });
 };
@@ -91,23 +101,32 @@ const routeGeneration = async ({ prompt, referenceAsset, model, count, settings 
   
   if (!modelConfig) {
     if (model.mode === 'auto') {
-      modelConfig = IMAGE_MODELS[0];
+      modelConfig = IMAGE_MODELS.find(m => m.id === 'auto');
     } else {
       throw { code: "MODEL_NOT_FOUND", message: `Model ${model.id} is not recognized.` };
     }
   }
 
   // Check availability
-  if (modelConfig.requires.length > 0) {
-    const isAvailable = modelConfig.requires.every(key => !!process.env[key]);
-    if (!isAvailable) {
-      throw {
-        code: "MISSING_API_KEY",
-        provider: modelConfig.provider,
-        model: modelConfig.id,
-        message: `${modelConfig.provider.charAt(0).toUpperCase() + modelConfig.provider.slice(1)} generation is not configured on this server.`
-      };
-    }
+  const modelsConf = getConfiguredModels();
+  const currentStatus = modelsConf.find(m => m.id === modelConfig.id);
+  
+  if (!currentStatus.configured) {
+    throw {
+      code: "MISSING_API_KEY",
+      provider: modelConfig.provider,
+      model: modelConfig.id,
+      message: `${modelConfig.provider.charAt(0).toUpperCase() + modelConfig.provider.slice(1)} API key is missing.`
+    };
+  }
+
+  if (!currentStatus.available) {
+    throw {
+      code: "MODEL_NOT_AVAILABLE",
+      provider: modelConfig.provider,
+      model: modelConfig.id,
+      message: `${modelConfig.provider.charAt(0).toUpperCase() + modelConfig.provider.slice(1)} model is unavailable: ${currentStatus.reason}`
+    };
   }
 
   switch (modelConfig.provider) {
@@ -127,7 +146,7 @@ const routeGeneration = async ({ prompt, referenceAsset, model, count, settings 
     
     case 'pollinations':
       try {
-        return await freeGenerate({ prompt, referenceAsset, model: modelConfig.id });
+        return await pollinationsGenerate({ prompt, referenceAsset, model: modelConfig.id });
       } catch (err) {
         throw {
           code: err.code || 'GENERATION_ERROR',
@@ -138,23 +157,16 @@ const routeGeneration = async ({ prompt, referenceAsset, model, count, settings 
       }
 
     case 'google':
-      // Return MODEL_NOT_IMPLEMENTED explicitly per the user requirements if the model doesn't support image gen.
-      // We know our current tier blocks this via 429 Limit 0.
-      throw { 
-        success: false, 
-        code: "MODEL_NOT_IMPLEMENTED", 
-        provider: "google",
-        message: "This image model is not currently implemented." 
-      };
+      return await generateImageWithGoogle(referenceAsset.url, prompt, modelConfig.id, count || 1);
       
     case 'flux':
-      throw { code: "NOT_IMPLEMENTED", provider: "flux", message: "FLUX image generation logic is not yet implemented." };
+      return await fluxGenerate();
 
     case 'openai':
-      throw { code: "NOT_IMPLEMENTED", provider: "openai", message: "OpenAI image generation logic is not yet implemented." };
+      return await openaiGenerate();
 
     case 'recraft':
-      throw { code: "NOT_IMPLEMENTED", provider: "recraft", message: "Recraft image generation logic is not yet implemented." };
+      return await recraftGenerate();
 
     default:
       throw { code: "INVALID_PROVIDER", message: "Unsupported image generation provider." };

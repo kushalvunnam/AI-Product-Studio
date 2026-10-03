@@ -21,10 +21,10 @@ const generateCampaignVariations = async (req, res) => {
       return res.status(400).json({
         success: false,
         error: {
-          code: 'MISSING_API_KEY',
+          code: !modelConfig?.configured ? 'MISSING_API_KEY' : 'MODEL_NOT_AVAILABLE',
           provider: modelConfig?.provider || 'unknown'
         },
-        message: `${modelConfig?.provider ? modelConfig.provider.charAt(0).toUpperCase() + modelConfig.provider.slice(1) : 'Requested'} generation is not configured on this server.`
+        message: modelConfig?.reason || `${modelConfig?.provider ? modelConfig.provider.charAt(0).toUpperCase() + modelConfig.provider.slice(1) : 'Requested'} generation is not configured on this server.`
       });
     }
 
@@ -109,10 +109,6 @@ const getVariationStatus = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Job/Campaign not found' });
     }
 
-    // A variation request typically expects 4 by default or what we configured. 
-    // We assume 4 here for the frontend calculation, or use the generated array length + pending.
-    // However, the frontend just needs completed & total. We don't save total variations target in DB right now explicitly as a count.
-    // We'll estimate total = 4.
     const total = 4;
     const completedVariations = campaign.variations ? campaign.variations.length : 0;
     
@@ -120,11 +116,11 @@ const getVariationStatus = async (req, res) => {
     if (campaign.status === 'review') status = 'completed';
     if (campaign.status === 'failed') status = 'failed';
     if (campaign.status === 'completed') status = 'completed';
-    if (status === 'completed' && completedVariations < total) status = 'partial'; // Actually 'review' is standard successful status
+    if (status === 'completed' && completedVariations < total) status = 'partial'; 
     
     return res.status(200).json({
       success: true,
-      status: campaign.status, // We map draft/analyzing/generating/review/failed to processing/completed/failed in the controller response
+      status: campaign.status, 
       mappedStatus: status, 
       completed: completedVariations,
       total: total,
