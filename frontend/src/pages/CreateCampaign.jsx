@@ -44,6 +44,7 @@ const CreateCampaign = () => {
   });
   
   const [modelSettings, setModelSettings] = useState({ mode: 'auto', preference: 'balanced', id: 'auto' });
+    const [availableModels, setAvailableModels] = useState([]);
   const [variationCount, setVariationCount] = useState(4);
 
   const [isGenerating, setIsGenerating] = useState(false);
