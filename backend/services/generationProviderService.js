@@ -4,6 +4,7 @@ const { generateImage: pollinationsGenerate } = require('./providers/pollination
 const { generateImage: openaiGenerate } = require('./providers/openaiProvider');
 const { generateImage: fluxGenerate } = require('./providers/fluxProvider');
 const { generateImage: recraftGenerate } = require('./providers/recraftProvider');
+const { generateImage: aihordeGenerate } = require('./providers/aiHordeProvider');
 
 const fetch = global.fetch;
 
@@ -15,7 +16,18 @@ const IMAGE_MODELS = [
     description: "Free public image generation",
     requiresApiKey: false,
     requires: [],
-    freeTier: true
+    freeTier: true,
+    capabilities: { textToImage: true, imageToImage: false, inpainting: false, productPreservation: false }
+  },
+  {
+    id: "free-aihorde",
+    label: "AI Horde — Free Image-to-Image",
+    provider: "aihorde",
+    description: "Free product preservation",
+    requiresApiKey: false,
+    requires: [],
+    freeTier: true,
+    capabilities: { textToImage: true, imageToImage: true, inpainting: true, productPreservation: true }
   },
   {
     id: "auto",
@@ -24,7 +36,8 @@ const IMAGE_MODELS = [
     description: "Recommended for most campaigns",
     requiresApiKey: true,
     requires: ["CLOUDINARY_API_KEY", "CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_SECRET"],
-    freeTier: false
+    freeTier: false,
+    capabilities: { textToImage: true, imageToImage: true, inpainting: true, productPreservation: true }
   },
   {
     id: "nano-banana-2",
@@ -33,7 +46,8 @@ const IMAGE_MODELS = [
     description: "Google image generation",
     requiresApiKey: true,
     requires: ["GOOGLE_AI_API_KEY"],
-    freeTier: false
+    freeTier: false,
+    capabilities: { textToImage: true, imageToImage: false, inpainting: false, productPreservation: false }
   },
   {
     id: "flux-2-pro",
@@ -42,7 +56,8 @@ const IMAGE_MODELS = [
     description: "High-quality image generation",
     requiresApiKey: true,
     requires: ["FLUX_API_KEY"],
-    freeTier: false
+    freeTier: false,
+    capabilities: { textToImage: true, imageToImage: false, inpainting: false, productPreservation: false }
   },
   {
     id: "gpt-image-2",
@@ -51,7 +66,8 @@ const IMAGE_MODELS = [
     description: "OpenAI image generation",
     requiresApiKey: true,
     requires: ["OPENAI_API_KEY"],
-    freeTier: false
+    freeTier: false,
+    capabilities: { textToImage: true, imageToImage: false, inpainting: false, productPreservation: false }
   },
   {
     id: "recraft-v4",
@@ -60,7 +76,8 @@ const IMAGE_MODELS = [
     description: "Creative/product visuals",
     requiresApiKey: true,
     requires: ["RECRAFT_API_KEY"],
-    freeTier: false
+    freeTier: false,
+    capabilities: { textToImage: true, imageToImage: false, inpainting: false, productPreservation: false }
   }
 ];
 
@@ -141,6 +158,7 @@ const getConfiguredModels = async () => {
       requiresApiKey: model.requiresApiKey,
       freeTier: model.freeTier,
       configured,
+      capabilities: model.capabilities,
       reason
     };
   });
@@ -201,6 +219,18 @@ const routeGeneration = async ({ prompt, referenceAsset, model, count, settings 
         throw {
           code: err.code || 'GENERATION_ERROR',
           provider: 'pollinations',
+          model: modelConfig.id,
+          message: err.message
+        };
+      }
+      
+    case 'aihorde':
+      try {
+        return await aihordeGenerate({ prompt, referenceAsset });
+      } catch (err) {
+        throw {
+          code: err.code || 'GENERATION_ERROR',
+          provider: 'aihorde',
           model: modelConfig.id,
           message: err.message
         };

@@ -600,17 +600,34 @@ const CreateCampaign = () => {
                 </div>
               </div>
               <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col sm:flex-row justify-end w-full">
-                <button 
-                  onClick={startGeneration} 
-                  className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white px-8 py-3 rounded-xl font-bold shadow-[0_4px_14px_0_rgba(14,165,233,0.39)] flex flex-col items-center justify-center gap-1 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                >
-                  <div className="flex items-center gap-2 text-[15px]">
-                    Generate {variationCount} Variations <ArrowRight className="w-4 h-4" />
-                  </div>
-                  <span className="text-[10px] font-medium opacity-90 tracking-wide uppercase">
-                    Powered by {modelSettings.id === 'auto' ? 'Cloudinary AI' : (availableModels.find(m => m.id === modelSettings.id)?.name || 'AI Provider')}
-                  </span>
-                </button>
+                {(() => {
+                  const currentModel = availableModels.find(m => m.id === modelSettings.id) || availableModels.find(m => m.id === 'auto');
+                  const requiresMask = currentModel?.capabilities?.productPreservation;
+                  const missingMask = requiresMask && (!sourceImage || !sourceImage.mask);
+                  const disabled = missingMask;
+                  
+                  return (
+                    <div className="flex flex-col items-end gap-2 w-full sm:w-auto">
+                      <button 
+                        onClick={startGeneration} 
+                        disabled={disabled}
+                        className={`w-full px-8 py-3 rounded-xl font-bold flex flex-col items-center justify-center gap-1 transition-all ${disabled ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white shadow-[0_4px_14px_0_rgba(14,165,233,0.39)] hover:scale-[1.02] active:scale-[0.98]'}`}
+                      >
+                        <div className="flex items-center gap-2 text-[15px]">
+                          Generate {variationCount} Variations <ArrowRight className="w-4 h-4" />
+                        </div>
+                        <span className="text-[10px] font-medium opacity-90 tracking-wide uppercase">
+                          Powered by {currentModel?.name || 'AI Provider'}
+                        </span>
+                      </button>
+                      {missingMask && (
+                        <span className="text-xs text-red-500 font-medium max-w-xs text-right">
+                          Product mask missing. Please return to Step 1 and re-upload the product.
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
           </div>
         )}
