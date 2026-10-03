@@ -167,6 +167,7 @@ const getVariationStatus = async (req, res) => {
             
             if (statusRes.secureUrl) {
               v.secureUrl = statusRes.secureUrl;
+              console.log('[VARIATION] saved image URL:', v.secureUrl);
               v.publicId = statusRes.publicId;
               v.assetId = statusRes.assetId;
             }

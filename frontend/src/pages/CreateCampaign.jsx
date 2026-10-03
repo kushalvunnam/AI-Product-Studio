@@ -198,7 +198,7 @@ const CreateCampaign = () => {
         pollingRef.current = setInterval(async () => {
           try {
             attempts++;
-            if (attempts > 40) { clearInterval(pollingRef.current); setGenerationError('AI Horde is currently busy. Please retry in a moment.'); setIsGenerating(false); return; }
+            if (attempts > 100) { clearInterval(pollingRef.current); setGenerationError('AI Horde is processing your image. The free community GPU queue may take a few minutes.'); setIsGenerating(false); return; }
             
             const statusData = await getGenerationStatus(result.jobId);
             const { mappedStatus, completed, total, variations, error } = statusData;
@@ -662,7 +662,7 @@ const CreateCampaign = () => {
                         className={`w-full px-8 py-3 rounded-xl font-bold flex flex-col items-center justify-center gap-1 transition-all ${disabled ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white shadow-[0_4px_14px_0_rgba(14,165,233,0.39)] hover:scale-[1.02] active:scale-[0.98]'}`}
                       >
                         <div className="flex items-center gap-2 text-[15px]">
-                          {isGenerating ? 'Generating...' : `Generate ${variationCount} Variation`} {!isGenerating && <ArrowRight className="w-4 h-4" />}
+                          {isGenerating ? 'Generating 1 variation...' : `Generate 1 Variation`} {!isGenerating && <ArrowRight className="w-4 h-4" />}
                         </div>
                         <span className="text-[10px] font-medium opacity-90 tracking-wide uppercase">
                           Powered by {currentModel?.name || 'AI Provider'}
@@ -746,7 +746,7 @@ const CreateCampaign = () => {
             {generatedResult && !isGenerating && (
               <div className="space-y-6 max-w-none">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-[#101828]">Select Approved Creative</h3>
+                  <h3 className="text-lg font-semibold text-[#101828]">Variation generated successfully</h3>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-full -mx-4 md:mx-0 px-4 md:px-0">
                   {generatedResult.variations.map((variant) => (

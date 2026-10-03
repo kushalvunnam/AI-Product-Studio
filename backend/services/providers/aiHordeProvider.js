@@ -4,7 +4,7 @@ const fetch = global.fetch || require('node-fetch');
 const getBase64FromUrl = async (url) => {
   let fetchUrl = url;
   if (url && url.includes('cloudinary.com') && url.includes('/upload/')) {
-    fetchUrl = url.replace('/upload/', '/upload/c_limit,w_1024,h_1024/');
+    fetchUrl = url.replace('/upload/', '/upload/c_limit,w_512,h_512/');
   }
   const response = await fetch(fetchUrl);
   if (!response.ok) throw new Error(`Failed to fetch image from ${fetchUrl}`);
@@ -45,7 +45,7 @@ const submitHordeJob = async ({ prompt, referenceAsset, count }) => {
       throw { code: 'SOURCE_MASK_INVALID', message: `Invalid mask image.` };
     }
 
-    const models = ["Deliberate Inpainting", "Realistic Vision Inpainting", "DreamShaper Inpainting", "Anything Diffusion Inpainting", "stable_diffusion_inpainting"];
+    const models = ["Realistic Vision Inpainting", "DreamShaper Inpainting", "Anything Diffusion Inpainting", "Deliberate Inpainting"];
 
     const payload = {
       prompt: `${prompt}, photorealistic, high quality, 8k, highly detailed`,
@@ -98,6 +98,7 @@ const submitHordeJob = async ({ prompt, referenceAsset, count }) => {
     }
 
     const jobId = submitData.id;
+    console.log('[HORDE] request ID:', jobId);
     if (!jobId) {
       throw new Error('AI Horde did not return a job ID');
     }
@@ -139,6 +140,7 @@ const checkHordeJob = async (jobId) => {
         return { status: 'failed', error: 'RESULT_MISSING: AI Horde returned done but no generations were found.' };
       }
       
+      console.log('[HORDE] generation completed:', statusData.generations[0].id);
       const generatedBase64 = statusData.generations[0].img;
       const b64Data = generatedBase64.startsWith('http') 
         ? generatedBase64 
@@ -148,6 +150,7 @@ const checkHordeJob = async (jobId) => {
         const uploadResult = await cloudinary.uploader.upload(b64Data, {
           folder: 'studio/variations'
         });
+        console.log('[CLOUDINARY] secure_url:', uploadResult.secure_url);
         return {
           status: 'completed',
           secureUrl: uploadResult.secure_url,
@@ -159,6 +162,7 @@ const checkHordeJob = async (jobId) => {
       }
     }
 
+    console.log('[HORDE] status:', 'processing', '| queue_position:', checkData.queue_position);
     return { status: 'processing', queuePosition: checkData.queue_position };
   } catch (err) {
     return { status: 'processing', error: err.message };

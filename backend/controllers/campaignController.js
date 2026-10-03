@@ -22,7 +22,16 @@ const updateCampaign = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Campaign not found' });
     }
     
+    
+    if (campaign.variations && campaign.variations.length > 0) {
+      campaign.variations.forEach((v, i) => {
+        if (v.secureUrl) {
+          console.log(`[CAMPAIGN] returned image URL: ${v.secureUrl}`);
+        }
+      });
+    }
     return res.status(200).json({ success: true, campaign });
+
   } catch (error) {
     console.error('Error updating campaign:', error);
     return res.status(500).json({ success: false, message: 'Failed to update campaign' });
