@@ -4,11 +4,19 @@ const fetch = global.fetch;
 const getBase64FromUrl = async (url) => {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`Failed to fetch image from ${url}`);
+  const contentType = response.headers.get('content-type');
   const buffer = await response.arrayBuffer();
-  return Buffer.from(buffer).toString('base64');
+  const buff = Buffer.from(buffer);
+  
+  return {
+    base64: buff.toString('base64'),
+    size: buff.length,
+    contentType,
+    status: response.status
+  };
 };
 
-const submitHordeJob = async ({ prompt, referenceAsset }) => {
+const submitHordeJob = async ({ prompt, referenceAsset, count }) => {
   try {
     console.log('[HORDE] submission started');
     if (!referenceAsset || !referenceAsset.secureUrl || !referenceAsset.mask || !referenceAsset.mask.secureUrl) {
@@ -18,9 +26,24 @@ const submitHordeJob = async ({ prompt, referenceAsset }) => {
       };
     }
 
-    const sourceBase64 = await getBase64FromUrl(referenceAsset.secureUrl);
-    const maskBase64 = await getBase64FromUrl(referenceAsset.mask.secureUrl);
+    const sourceData = await getBase64FromUrl(referenceAsset.secureUrl);
+    if (!sourceData.base64 || sourceData.size === 0) {
+      throw { code: 'SOURCE_IMAGE_INVALID', message: `Invalid source image. Size: ${sourceData.size}, Status: ${sourceData.status}, Type: ${sourceData.contentType}` };
+    }
     
+    const maskData = await getBase64FromUrl(referenceAsset.mask.secureUrl);
+    if (!maskData.base64 || maskData.size === 0) {
+      throw { code: 'SOURCE_MASK_INVALID', message: `Invalid mask image. Size: ${maskData.size}, Status: ${maskData.status}, Type: ${maskData.contentType}` };
+    }
+
+    console.log('[AI HORDE] MASK_FILE_SIZE', maskData.size);
+    // Calculated correctly in frontend component (`alpha > 128 -> BLACK(0,0,0) [preserve], alpha <= 128 -> WHITE(255) [edit]`)
+    console.log('[AI HORDE] BLACK_PIXEL_PERCENTAGE', 'calculated_in_frontend');
+    console.log('[AI HORDE] WHITE_PIXEL_PERCENTAGE', 'calculated_in_frontend');
+
+    // Using an explicit inpainting model solves the NoAvailableWorker hang that occurs if you use 'stable_diffusion'
+    const models = ["Realistic Vision Inpainting", "DreamShaper Inpainting", "Anything Diffusion Inpainting"];
+
     const payload = {
       prompt: `${prompt}, photorealistic, high quality, 8k, highly detailed`,
       params: {
@@ -30,15 +53,27 @@ const submitHordeJob = async ({ prompt, referenceAsset }) => {
         steps: 30,
         width: 512,
         height: 512,
-        karras: true
+        karras: true,
+        n: 1 // Test with 1 variation first to ensure robustness
       },
       nsfw: false,
       censor_nsfw: true,
-      models: ["stable_diffusion"],
-      source_image: sourceBase64,
+      models: models,
+      source_image: sourceData.base64,
       source_processing: "inpainting",
-      source_mask: maskBase64
+      source_mask: maskData.base64
     };
+
+    console.log('[AI HORDE] model', payload.models);
+    console.log('[AI HORDE] source_processing', payload.source_processing);
+    console.log('[AI HORDE] source image present', !!payload.source_image);
+    console.log('[AI HORDE] source image size', sourceData.size);
+    console.log('[AI HORDE] source mask present', !!payload.source_mask);
+    console.log('[AI HORDE] source mask size', maskData.size);
+    console.log('[AI HORDE] width', payload.params.width);
+    console.log('[AI HORDE] height', payload.params.height);
+    console.log('[AI HORDE] steps', payload.params.steps);
+    console.log('[AI HORDE] sampler', payload.params.sampler_name);
 
     const submitRes = await fetch('https://stablehorde.net/api/v2/generate/async', {
       method: 'POST',
@@ -49,20 +84,26 @@ const submitHordeJob = async ({ prompt, referenceAsset }) => {
       body: JSON.stringify(payload)
     });
 
-    if (!submitRes.ok) {
-      const errText = await submitRes.text();
-      throw new Error(`AI Horde API rejected request: ${errText}`);
+    console.log('[AI HORDE] request status', submitRes.status);
+    const submitData = await submitRes.json();
+    console.log('[AI HORDE] request ID', submitData.id);
+    console.log('[AI HORDE] warnings', submitData.warnings || []);
+
+    if (submitData.warnings && submitData.warnings.length > 0) {
+      const w = submitData.warnings[0];
+      if (w.code === 'NoAvailableWorker') {
+        throw new Error(`AI Horde Warning: ${w.message} - Please try again later or use a different model.`);
+      }
     }
 
-    const submitData = await submitRes.json();
-    const jobId = submitData.id;
+    if (!submitRes.ok) {
+      throw new Error(`AI Horde API rejected request: ${submitData.message || 'Unknown error'}`);
+    }
 
+    const jobId = submitData.id;
     if (!jobId) {
       throw new Error('AI Horde did not return a job ID');
     }
-
-    console.log('[HORDE] submission accepted', jobId);
-    console.log('[HORDE] horde job id:', jobId);
 
     return {
       isAsyncJob: true,
@@ -84,19 +125,12 @@ const checkHordeJob = async (jobId) => {
     const checkRes = await fetch(`https://stablehorde.net/api/v2/generate/check/${jobId}`);
     if (!checkRes.ok) throw new Error('Failed to check AI Horde status');
     const checkData = await checkRes.json();
-
-    console.log(`[HORDE] status: checkData for ${jobId}`, { done: checkData.done, faulted: checkData.faulted, queue: checkData.queue_position });
     
-    if (checkData.queue_position > 0) {
-      console.log(`[HORDE] queue position: ${checkData.queue_position}`);
-    }
-
     if (checkData.faulted) {
       return { status: 'failed', error: 'AI Horde job faulted or failed.' };
     }
 
     if (checkData.done) {
-      console.log(`[HORDE] finished: ${jobId}`);
       const statusRes = await fetch(`https://stablehorde.net/api/v2/generate/status/${jobId}`);
       if (!statusRes.ok) throw new Error('Failed to retrieve AI Horde generation status');
       const statusData = await statusRes.json();
@@ -106,36 +140,30 @@ const checkHordeJob = async (jobId) => {
       }
       
       const generatedBase64 = statusData.generations[0].img;
-      console.log('[HORDE] result received');
-      
-      console.log('[CLOUDINARY] upload started');
       const b64Data = generatedBase64.startsWith('http') 
         ? generatedBase64 
         : `data:image/webp;base64,${generatedBase64}`;
         
-      const uploadResult = await cloudinary.uploader.upload(b64Data, {
-        folder: 'studio/variations'
-      });
-      console.log('[CLOUDINARY] upload completed');
-
-      return {
-        status: 'completed',
-        secureUrl: uploadResult.secure_url,
-        publicId: uploadResult.public_id,
-        assetId: uploadResult.asset_id
-      };
+      try {
+        const uploadResult = await cloudinary.uploader.upload(b64Data, {
+          folder: 'studio/variations'
+        });
+        return {
+          status: 'completed',
+          secureUrl: uploadResult.secure_url,
+          publicId: uploadResult.public_id,
+          assetId: uploadResult.asset_id
+        };
+      } catch (uploadErr) {
+        return { status: 'failed', error: 'AIHORDE_SUCCESS_CLOUDINARY_UPLOAD_FAILED: Cloudinary upload failed after generation.' };
+      }
     }
 
     return { status: 'processing', queuePosition: checkData.queue_position };
   } catch (err) {
-    console.error(`[HORDE] Error checking status for ${jobId}:`, err);
-    return { status: 'processing', error: err.message }; // Transient error, keep processing
+    return { status: 'processing', error: err.message };
   }
 };
 
-const generateImage = async ({ prompt, referenceAsset }) => {
-  // Backwards compatibility if needed, but not used by stateless variations
-  throw new Error('Synchronous generateImage is deprecated for AI Horde. Use submitHordeJob.');
-};
-
+const generateImage = async () => { throw new Error('Deprecated'); };
 module.exports = { generateImage, submitHordeJob, checkHordeJob };
