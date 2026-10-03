@@ -112,9 +112,13 @@ const CreateCampaign = () => {
               }
             }
             ctx.putImageData(imageData, 0, 0);
+            URL.revokeObjectURL(img.src);
             canvas.toBlob(resolve, 'image/png');
           };
-          img.onerror = reject;
+          img.onerror = (err) => {
+            URL.revokeObjectURL(img.src);
+            reject(err);
+          };
           img.src = URL.createObjectURL(transparentBlob);
         });
 
