@@ -3,7 +3,6 @@ const { generateImageWithGoogle } = require('./providers/googleProvider');
 const { generateImage: pollinationsGenerate } = require('./providers/pollinationsProvider');
 const { generateImage: openaiGenerate } = require('./providers/openaiProvider');
 const { generateImage: fluxGenerate } = require('./providers/fluxProvider');
-const { generateImage: recraftGenerate } = require('./providers/recraftProvider');
 const { generateImage: aihordeGenerate } = require('./providers/aiHordeProvider');
 
 const fetch = global.fetch;
@@ -66,16 +65,6 @@ const IMAGE_MODELS = [
     description: "OpenAI image generation",
     requiresApiKey: true,
     requires: ["OPENAI_API_KEY"],
-    freeTier: false,
-    capabilities: { textToImage: true, imageToImage: false, inpainting: false, productPreservation: false }
-  },
-  {
-    id: "recraft-v4",
-    label: "Recraft v4",
-    provider: "recraft",
-    description: "Creative/product visuals",
-    requiresApiKey: true,
-    requires: ["RECRAFT_API_KEY"],
     freeTier: false,
     capabilities: { textToImage: true, imageToImage: false, inpainting: false, productPreservation: false }
   }
@@ -141,12 +130,6 @@ const getConfiguredModels = async () => {
           available = false;
           reason = 'Free generation temporarily unavailable';
         }
-      }
-      
-      // Force non-implemented paid models to be unavailable even if key exists
-      if (['flux', 'recraft'].includes(model.provider) && configured) {
-        available = false;
-        reason = 'Model logic not implemented';
       }
     }
 
@@ -249,9 +232,6 @@ const routeGeneration = async ({ prompt, referenceAsset, model, count, settings 
 
     case 'openai':
       return await openaiGenerate();
-
-    case 'recraft':
-      return await recraftGenerate();
 
     default:
       throw { code: "INVALID_PROVIDER", message: "Unsupported image generation provider." };
