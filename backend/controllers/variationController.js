@@ -1,4 +1,5 @@
 const { generateVariations } = require('../services/variationService');
+const { getConfiguredModels } = require('../services/generationProviderService');
 const Campaign = require('../models/Campaign');
 
 const generateCampaignVariations = async (req, res) => {
@@ -11,6 +12,22 @@ const generateCampaignVariations = async (req, res) => {
 
     const count = parseInt(variationCount, 10) || 4;
     
+    // Synchronous validation of model availability
+    const resolvedModelId = model?.id || 'auto';
+    const availableModels = getConfiguredModels();
+    const modelConfig = availableModels.find(m => m.id === resolvedModelId) || availableModels.find(m => m.id === 'auto');
+    
+    if (!modelConfig || !modelConfig.available) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'MISSING_API_KEY',
+          provider: modelConfig?.provider || 'unknown'
+        },
+        message: `${modelConfig?.provider ? modelConfig.provider.charAt(0).toUpperCase() + modelConfig.provider.slice(1) : 'Requested'} generation is not configured on this server.`
+      });
+    }
+
     if (campaignId) {
       // Async background generation
       

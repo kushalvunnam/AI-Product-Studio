@@ -16,37 +16,7 @@ export const transformAssets = async (data) => {
   return result;
 };
 
-const IMAGE_EDIT_MODELS = {
-  auto: {
-    id: "auto",
-    name: "Auto — Recommended",
-    description: "Cloudinary automatically selects the best model",
-    mode: "auto"
-  },
-  nanoBanana2: {
-    id: "nano-banana-2-edit",
-    name: "Nano Banana 2",
-    description: "Fast, creative generations"
-  },
-  flux2Pro: {
-    id: "flux-2-pro-edit",
-    name: "FLUX 2 Pro",
-    description: "Photorealistic product imagery"
-  },
-  gptImage2: {
-    id: "gpt-image-2-edit",
-    name: "GPT Image 2",
-    description: "High-quality general purpose"
-  },
-  recraftV4: {
-    id: "recraft-v4",
-    name: "Recraft v4",
-    description: "Clean vector and illustration styles",
-    disabled: true,
-    tooltip: "Not available for reference-image generation"
-  }
-};
-const generationModels = Object.values(IMAGE_EDIT_MODELS);
+
 
 const CreateCampaign = () => {
   const navigate = useNavigate();
@@ -252,6 +222,13 @@ const CreateCampaign = () => {
     setStep(5); 
   };
 
+  useEffect(() => {
+    getConfiguredModels().then(models => {
+      if (models && models.length > 0) setAvailableModels(models);
+      else setAvailableModels([{ id: 'auto', label: 'Auto — Recommended', provider: 'cloudinary', description: 'Recommended for most campaigns', available: true }]);
+    });
+  }, []);
+
   const togglePlatform = (key) => { setSelectedPlatforms(prev => ({ ...prev, [key]: !prev[key] })); };
 
   const startTransformation = async () => {
@@ -429,11 +406,11 @@ const CreateCampaign = () => {
                     <div>
                       <label className="block text-sm font-medium text-[#52627A] mb-3">Generation Model</label>
                       <div className="space-y-2">
-                        {generationModels.map(model => (
-                          <label key={model.id} className={`flex items-start p-3 rounded-lg border cursor-pointer transition-colors ${modelSettings.id === model.id ? 'bg-primary/10 border-primary/50 shadow-md' : 'bg-white shadow-sm border-slate-200 hover:border-slate-500'}`}>
-                            <input type="radio" name="model" value={model.id} checked={modelSettings.id === model.id} onChange={() => setModelSettings(prev => ({...prev, id: model.id, mode: model.id === 'auto' ? 'auto' : 'specific'}))} className="mt-0.5 w-4 h-4 text-primary-600 focus:ring-primary-500 bg-slate-100 border-slate-200" />
+                        {availableModels.map(model => (
+                          <label key={model.id} className={`flex items-start p-3 rounded-lg border transition-colors ${!model.available ? 'opacity-60 cursor-not-allowed bg-slate-50' : 'cursor-pointer'} ${modelSettings.id === model.id ? 'bg-primary/10 border-primary/50 shadow-md' : (!model.available ? 'border-slate-200' : 'bg-white shadow-sm border-slate-200 hover:border-slate-500')}`}>
+                            <input type="radio" name="model" value={model.id} checked={modelSettings.id === model.id} onChange={() => setModelSettings(prev => ({...prev, id: model.id, mode: model.id === 'auto' ? 'auto' : 'specific'}))} disabled={!model.available} className="mt-0.5 w-4 h-4 text-primary-600 focus:ring-primary-500 bg-slate-100 border-slate-200" />
                             <div className="ml-3 flex flex-col">
-                              <span className={`text-sm font-bold ${modelSettings.id === model.id ? 'text-primary' : 'text-[#172033]'}`}>{model.name}</span>
+                              <div className="flex items-center gap-2"><span className={`text-sm font-bold ${modelSettings.id === model.id ? 'text-primary' : 'text-[#172033]'}`}>{model.label}</span>{!model.available && <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-medium" title={model.description}>🔒 Not Configured</span>}</div><span className="text-xs text-[#6B7A90] mt-0.5">{model.description}</span>
                             </div>
                           </label>
                         ))}

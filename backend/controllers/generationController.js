@@ -1,5 +1,14 @@
 const { buildGenerationPrompt } = require('../services/promptBuilder');
-const { generateImage } = require('../services/cloudinaryGenerationService');
+const { routeGeneration, getConfiguredModels } = require('../services/generationProviderService');
+
+const getModels = (req, res) => {
+  try {
+    const models = getConfiguredModels();
+    return res.status(200).json({ success: true, models });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to fetch models' });
+  }
+};
 
 const generateCampaignImage = async (req, res) => {
   try {
@@ -16,11 +25,11 @@ const generateCampaignImage = async (req, res) => {
     // 1. Build the prompt
     const prompt = buildGenerationPrompt({ analysis, creativeBrief });
 
-    // 2. Call Cloudinary Image Generation
-    const asset = await generateImage({
+    // 2. Call Image Generation Provider
+    const asset = await routeGeneration({
       prompt,
       referenceAsset: sourceImage,
-      model: model || { mode: 'auto', preference: 'balanced' },
+      model: model || { id: 'auto', mode: 'auto', preference: 'balanced' },
       settings: {}
     });
 
@@ -37,7 +46,7 @@ const generateCampaignImage = async (req, res) => {
       },
       generation: {
         prompt,
-        model: model?.mode || 'auto',
+        model: model?.id || 'auto',
         preference: model?.preference || 'balanced',
         sourceAsset: sourceImage.publicId
       }
@@ -45,13 +54,20 @@ const generateCampaignImage = async (req, res) => {
 
   } catch (error) {
     console.error('Generation Controller Error:', error);
-    return res.status(500).json({ 
+    return res.status(error.code === 'MISSING_API_KEY' ? 400 : 500).json({ 
       success: false, 
+      error: {
+        code: error.code || 'GENERATION_FAILED',
+        provider: error.provider || 'unknown',
+        model: error.model || 'unknown',
+        message: error.message || 'Generation failed. Please try again.'
+      },
       message: error.message || 'Generation failed. Please try again.' 
     });
   }
 };
 
 module.exports = {
+  getModels,
   generateCampaignImage
 };

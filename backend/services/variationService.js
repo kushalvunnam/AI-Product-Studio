@@ -1,4 +1,4 @@
-const { generateImage } = require('./cloudinaryGenerationService');
+const { routeGeneration } = require('./generationProviderService');
 const { buildVariationPrompt, variationStrategies } = require('./promptBuilder');
 
 // Simple chunking for concurrency limit
@@ -26,7 +26,7 @@ const generateVariations = async ({ sourceImage, analysis, creativeBrief, model,
       try {
         const prompt = buildVariationPrompt({ analysis, creativeBrief, variationType: strategy.id });
         
-        const asset = await generateImage({
+        const asset = await routeGeneration({
           prompt,
           referenceAsset: sourceImage,
           model,
