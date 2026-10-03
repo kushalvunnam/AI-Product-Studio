@@ -189,7 +189,7 @@ const getVariationStatus = async (req, res) => {
       }
     }
 
-    const total = 4;
+    const total = 1;
     const completedVariations = campaign.variations ? campaign.variations.filter(v => v.status === 'completed').length : 0;
     
     let mappedStatus = campaign.status;

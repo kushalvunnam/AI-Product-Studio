@@ -46,7 +46,7 @@ const CreateCampaign = () => {
   
   const [modelSettings, setModelSettings] = useState({ mode: 'auto', preference: 'balanced', id: 'auto' });
     const [availableModels, setAvailableModels] = useState([]);
-  const [variationCount, setVariationCount] = useState(4);
+  const [variationCount, setVariationCount] = useState(1);
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState(null);
@@ -288,7 +288,7 @@ const CreateCampaign = () => {
               const statusData = await getGenerationStatus(result.jobId);
               const { status, mappedStatus, completed, total, variations, error } = statusData;
               
-              let detailedMessage = `Generating variations... ${completed} / ${total} completed`;
+              let detailedMessage = `Generating variation...  /  completed`;
               if (variations && variations.length > 0) {
                  const activeVars = variations.filter(v => v.status !== 'completed' && v.status !== 'failed');
                  if (activeVars.length > 0) {
@@ -317,14 +317,14 @@ const CreateCampaign = () => {
                   const firstVariant = validVariations[0];
                   setSelectedVariant(firstVariant);
                   if (campaignId) await updateCampaign(campaignId, { selectedVariation: firstVariant });
-                  isGenerating(false);
+                  setIsGenerating(false);
                   setStep(5);
                 } else if (mappedStatus === 'failed' || error || (variations && variations.length > 0)) {
-                  setGenerationError(error || 'Failed to generate valid variations.');
-                  isGenerating(false);
+                  setGenerationError(error || 'Generation failed.');
+                  setIsGenerating(false);
                 } else {
                   setGenerationError('Generation failed on the server. Please try again.');
-                  isGenerating(false);
+                  setIsGenerating(false);
                 }
                 return;
               }
@@ -333,7 +333,7 @@ const CreateCampaign = () => {
               pollFailures++;
               if (pollFailures > 10) {
                  setGenerationError('Lost connection to server while polling.');
-                 isGenerating(false);
+                 setIsGenerating(false);
                  return;
               }
             }
@@ -667,7 +667,7 @@ const CreateCampaign = () => {
                         className={`w-full px-8 py-3 rounded-xl font-bold flex flex-col items-center justify-center gap-1 transition-all ${disabled ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white shadow-[0_4px_14px_0_rgba(14,165,233,0.39)] hover:scale-[1.02] active:scale-[0.98]'}`}
                       >
                         <div className="flex items-center gap-2 text-[15px]">
-                          Generate {variationCount} Variations <ArrowRight className="w-4 h-4" />
+                          {isGenerating ? 'Generating...' : `Generate ${variationCount} Variation`} {!isGenerating && <ArrowRight className="w-4 h-4" />}
                         </div>
                         <span className="text-[10px] font-medium opacity-90 tracking-wide uppercase">
                           Powered by {currentModel?.name || 'AI Provider'}
@@ -711,9 +711,7 @@ const CreateCampaign = () => {
       onClick={startGeneration} 
       className="bg-red-500 hover:bg-red-600 text-[#101828] px-6 py-2 rounded-lg font-medium transition-colors"
       disabled={isGenerating}
-    >
-      Retry Generation
-    </button>
+    >{isGenerating ? 'Generating...' : 'Retry Generation'}</button>
   </div>
 )}
               {isGenerating && (
