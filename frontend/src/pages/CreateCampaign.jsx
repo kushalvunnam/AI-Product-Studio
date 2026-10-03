@@ -363,6 +363,30 @@ const CreateCampaign = () => {
     });
   }, []);
 
+  useEffect(() => {
+    if (availableModels.length === 0) return;
+
+    const validModels = availableModels.filter(model => {
+      if (!model.available) return false;
+      if (model.requiresApiKey && !model.configured) return false;
+
+      const hasSourceImage = Boolean(sourceImage?.secureUrl || sourceImage?.url);
+      if (hasSourceImage) {
+        if (!model.capabilities?.productPreservation) return false;
+      }
+
+      return true;
+    });
+
+    if (!modelSettings.id || !validModels.some(model => model.id === modelSettings.id)) {
+      if (validModels.length > 0) {
+        setModelSettings(prev => ({ ...prev, id: validModels[0].id }));
+      } else {
+        setModelSettings(prev => ({ ...prev, id: null }));
+      }
+    }
+  }, [availableModels, sourceImage, modelSettings.id]);
+
   const togglePlatform = (key) => { setSelectedPlatforms(prev => ({ ...prev, [key]: !prev[key] })); };
 
   const startTransformation = async () => {
@@ -569,7 +593,7 @@ const CreateCampaign = () => {
                                 <div className="ml-3 flex flex-col w-full overflow-hidden">
                                   <div className="flex flex-wrap items-center gap-2 mb-1 w-full">
                                     <span className={`text-sm font-bold ${isSelected ? 'text-blue-700' : 'text-[#1e293b]'}`}>
-                                      {model.name || model.label}
+                                      {isAvailable ? (model.name || model.label) : (model.name || model.label).replace(/\s*[—-]\s*Recommended/i, '')}
                                     </span>
                                     {!isAvailable && <span className="text-[10px] bg-slate-100 text-[#475569] border border-slate-200 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">🔒 Not Available</span>}
                                     {isAvailable && model.freeTier && <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-bold whitespace-nowrap tracking-wide">🟢 FREE TIER</span>}
