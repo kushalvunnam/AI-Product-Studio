@@ -144,7 +144,7 @@ const getConfiguredModels = async () => {
       }
       
       // Force non-implemented paid models to be unavailable even if key exists
-      if (['openai', 'flux', 'recraft'].includes(model.provider) && configured) {
+      if (['flux', 'recraft'].includes(model.provider) && configured) {
         available = false;
         reason = 'Model logic not implemented';
       }
