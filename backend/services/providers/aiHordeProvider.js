@@ -45,7 +45,7 @@ const submitHordeJob = async ({ prompt, referenceAsset, count }) => {
       throw { code: 'SOURCE_MASK_INVALID', message: `Invalid mask image.` };
     }
 
-    const models = ["Deliberate Inpainting"];
+    const models = ["Deliberate Inpainting", "Realistic Vision Inpainting", "DreamShaper Inpainting", "Anything Diffusion Inpainting", "stable_diffusion_inpainting"];
 
     const payload = {
       prompt: `${prompt}, photorealistic, high quality, 8k, highly detailed`,
@@ -53,7 +53,7 @@ const submitHordeJob = async ({ prompt, referenceAsset, count }) => {
         sampler_name: "k_euler_a",
         cfg_scale: 7,
         denoising_strength: 0.9,
-        steps: 20,
+        steps: 15,
         width: 512,
         height: 512,
         karras: true,
