@@ -45,8 +45,8 @@ const generateImage = async ({ prompt, referenceAsset }) => {
     console.log('[AI HORDE] request started');
     if (!referenceAsset || !referenceAsset.secureUrl || !referenceAsset.mask || !referenceAsset.mask.secureUrl) {
       throw {
-        code: "SOURCE_IMAGE_TRANSFORMATION_FAILED",
-        message: "AI Horde could not perform product-preserving image generation. Missing source image or mask."
+        code: "SOURCE_IMAGE_OR_MASK_MISSING",
+        message: "Product image or product mask is missing. Please return to Upload Product."
       };
     }
 

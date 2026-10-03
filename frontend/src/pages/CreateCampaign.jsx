@@ -602,9 +602,15 @@ const CreateCampaign = () => {
               <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col sm:flex-row justify-end w-full">
                 {(() => {
                   const currentModel = availableModels.find(m => m.id === modelSettings.id) || availableModels.find(m => m.id === 'auto');
-                  const requiresMask = currentModel?.capabilities?.productPreservation;
-                  const missingMask = requiresMask && (!sourceImage || !sourceImage.mask);
-                  const disabled = missingMask;
+                  
+                  const requiresProductPreservation = Boolean(sourceImage?.secureUrl || sourceImage?.url);
+                  const supportsProductPreservation = currentModel?.capabilities?.productPreservation === true;
+                  
+                  const unsupportedForProduct = requiresProductPreservation && !supportsProductPreservation;
+                  const requiresMask = supportsProductPreservation;
+                  const missingMask = requiresMask && requiresProductPreservation && (!sourceImage || !sourceImage.mask);
+                  
+                  const disabled = missingMask || unsupportedForProduct;
                   
                   return (
                     <div className="flex flex-col items-end gap-2 w-full sm:w-auto">
@@ -620,6 +626,12 @@ const CreateCampaign = () => {
                           Powered by {currentModel?.name || 'AI Provider'}
                         </span>
                       </button>
+                      
+                      {unsupportedForProduct && (
+                        <span className="text-xs text-red-500 font-medium max-w-xs text-right mt-1">
+                          This provider supports text-to-image only and cannot preserve your uploaded product.
+                        </span>
+                      )}
                       {missingMask && (
                         <span className="text-xs text-red-500 font-medium max-w-xs text-right">
                           Product mask missing. Please return to Step 1 and re-upload the product.

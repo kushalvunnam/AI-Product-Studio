@@ -197,6 +197,11 @@ const routeGeneration = async ({ prompt, referenceAsset, model, count, settings 
     };
   }
 
+  if (process.env.NODE_ENV === 'development' || true) {
+    console.log(`[PROVIDER SELECTED] ${model.id}`);
+    console.log(`[PROVIDER ROUTED] ${modelConfig.provider}`);
+  }
+
   switch (modelConfig.provider) {
     case 'cloudinary':
       try {
