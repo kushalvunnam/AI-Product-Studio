@@ -4,28 +4,16 @@ const { submitFluxJob, checkFluxJob } = require('./providers/fluxProvider');
 const { generateOpenAIImage } = require('./providers/openaiProvider');
 const https = require('https');
 
-const fetch = global.fetch;
-
 const IMAGE_MODELS = [
   {
-    id: "free-aihorde",
+    id: "aihorde",
     label: "AI Horde — Free Image-to-Image",
     provider: "aihorde",
-    description: "Free product-preserving image-to-image generation",
+    description: "Free community-driven generation",
     requiresApiKey: false,
     requires: [],
     freeTier: true,
     capabilities: { textToImage: true, imageToImage: true, inpainting: true, productPreservation: true }
-  },
-  {
-    id: "free-pollinations",
-    label: "Open Source Free",
-    provider: "pollinations",
-    description: "Free text-to-image generation",
-    requiresApiKey: false,
-    requires: [],
-    freeTier: true,
-    capabilities: { textToImage: true, imageToImage: false, inpainting: false, productPreservation: false }
   },
   {
     id: "flux-2-pro",
@@ -49,37 +37,6 @@ const IMAGE_MODELS = [
   }
 ];
 
-let pollinationsStatusCache = { available: true, lastChecked: 0 };
-
-const checkPollinationsAvailability = async () => {
-  const now = Date.now();
-  if (now - pollinationsStatusCache.lastChecked < 60000) {
-    return pollinationsStatusCache.available;
-  }
-
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
-    const endpoint = 'https://image.pollinations.ai/prompt/test?width=10&height=10&nologo=true';
-    const headers = {};
-
-    if (process.env.POLLINATIONS_API_KEY) {
-      headers.Authorization = `Bearer ${process.env.POLLINATIONS_API_KEY}`;
-    }
-
-    const res = await fetch(endpoint, { method: 'HEAD', headers, signal: controller.signal });
-    clearTimeout(timeout);
-
-    pollinationsStatusCache.available = res.ok;
-    pollinationsStatusCache.lastChecked = now;
-    return res.ok;
-  } catch (err) {
-    pollinationsStatusCache.available = false;
-    pollinationsStatusCache.lastChecked = now;
-    return false;
-  }
-};
-
 const checkOpenAIAvailability = () => {
   return new Promise((resolve) => {
     if (!process.env.OPENAI_API_KEY) return resolve({ reachable: false });
@@ -100,12 +57,11 @@ const checkBFLAvailability = () => {
   return new Promise((resolve) => {
     if (!process.env.BFL_API_KEY) return resolve({ reachable: false });
     const req = https.request({
-      hostname: 'api.bfl.ai', // Correct endpoint domain
-      path: '/v1/models', // Dummy check
+      hostname: 'api.bfl.ai',
+      path: '/v1/models',
       method: 'GET',
       headers: { 'X-Key': process.env.BFL_API_KEY }
     }, (res) => {
-      // If it redirects or returns any non-5xx, we consider it reachable for diagnostic
       resolve({ reachable: res.statusCode < 500 }); 
     });
     req.on('error', () => resolve({ reachable: false }));
@@ -113,7 +69,6 @@ const checkBFLAvailability = () => {
   });
 };
 
-// Expose Diagnostics explicitly
 const getProviderDiagnostics = async () => {
   const bflCheck = await checkBFLAvailability();
   const oaiCheck = await checkOpenAIAvailability();
@@ -123,25 +78,23 @@ const getProviderDiagnostics = async () => {
       configured: !!process.env.BFL_API_KEY,
       implementation: true,
       api_reachable: bflCheck.reachable,
-      generation_supported: false, // Tested: 402 Insufficient credits
-      product_workflow_supported: true, // Tested: API accepts input_image
+      generation_supported: false,
+      product_workflow_supported: true,
       status: 'NOT WORKING - Insufficient Credits (402)'
     },
     GPT: {
       configured: !!process.env.OPENAI_API_KEY,
       implementation: true,
       api_reachable: oaiCheck.reachable,
-      generation_supported: false, // Tested: 429 Insufficient quota
-      product_workflow_supported: true, // Assuming model supports image input natively 
+      generation_supported: false,
+      product_workflow_supported: true,
       status: 'NOT WORKING - Insufficient Quota (429)'
     }
   };
 };
 
 const getConfiguredModels = async () => {
-  const isPollinationsAvailable = await checkPollinationsAvailability();
-  
-  const mapped = IMAGE_MODELS.map(model => {
+  return IMAGE_MODELS.map(model => {
     let configured = true;
     let available = true;
     let reason = '';
@@ -153,9 +106,6 @@ const getConfiguredModels = async () => {
     if (!configured) {
       available = false;
       reason = 'API Key Missing';
-    } else if (model.provider === 'pollinations' && !isPollinationsAvailable) {
-      available = false;
-      reason = 'Free generation temporarily unavailable';
     } else if (model.provider === 'flux') {
       available = false;
       reason = 'Insufficient Credits (402)';
@@ -176,8 +126,6 @@ const getConfiguredModels = async () => {
       reason
     };
   });
-
-  return mapped;
 };
 
 const routeGeneration = async ({ prompt, referenceAsset, model, count }) => {
@@ -192,7 +140,6 @@ const routeGeneration = async ({ prompt, referenceAsset, model, count }) => {
   }
 
   const modelsConf = await getConfiguredModels();
-  // Since we filtered unavailable ones out in getConfiguredModels, find might return undefined if we try to force it.
   const currentStatus = modelsConf.find(m => m.id === modelConfig.id) || { configured: true, available: false, reason: 'Unsupported workflow' };
 
   if (!currentStatus?.configured) {
@@ -224,18 +171,6 @@ const routeGeneration = async ({ prompt, referenceAsset, model, count }) => {
         throw {
           code: err.code || 'PROVIDER_API_ERROR',
           provider: 'aihorde',
-          model: modelConfig.id,
-          message: err.message
-        };
-      }
-
-    case 'pollinations':
-      try {
-        return await pollinationsGenerate({ prompt, referenceAsset, model: modelConfig.id });
-      } catch (err) {
-        throw {
-          code: err.code || 'PROVIDER_API_ERROR',
-          provider: 'pollinations',
           model: modelConfig.id,
           message: err.message
         };
