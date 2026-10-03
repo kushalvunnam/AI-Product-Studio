@@ -1,9 +1,9 @@
 const { buildGenerationPrompt } = require('../services/promptBuilder');
 const { routeGeneration, getConfiguredModels } = require('../services/generationProviderService');
 
-const getModels = (req, res) => {
+const getModels = async (req, res) => {
   try {
-    const models = getConfiguredModels();
+    const models = await getConfiguredModels();
     return res.status(200).json({ success: true, models });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Failed to fetch models' });

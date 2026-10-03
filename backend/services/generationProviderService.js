@@ -5,6 +5,8 @@ const { generateImage: openaiGenerate } = require('./providers/openaiProvider');
 const { generateImage: fluxGenerate } = require('./providers/fluxProvider');
 const { generateImage: recraftGenerate } = require('./providers/recraftProvider');
 
+const fetch = global.fetch;
+
 const IMAGE_MODELS = [
   {
     id: "free-pollinations",
@@ -62,7 +64,42 @@ const IMAGE_MODELS = [
   }
 ];
 
-const getConfiguredModels = () => {
+// Cache for pollinations check
+let pollinationsStatusCache = { available: true, lastChecked: 0 };
+
+const checkPollinationsAvailability = async () => {
+  const now = Date.now();
+  if (now - pollinationsStatusCache.lastChecked < 60000) {
+    return pollinationsStatusCache.available;
+  }
+  
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    // Lightweight check
+    const endpoint = 'https://image.pollinations.ai/prompt/test?width=10&height=10&nologo=true';
+    const headers = {};
+    if (process.env.POLLINATIONS_API_KEY) {
+      headers['Authorization'] = `Bearer ${process.env.POLLINATIONS_API_KEY}`;
+    }
+    
+    const res = await fetch(endpoint, { method: 'HEAD', headers, signal: controller.signal });
+    clearTimeout(timeout);
+    
+    pollinationsStatusCache.available = res.ok;
+    pollinationsStatusCache.lastChecked = now;
+    return res.ok;
+  } catch (err) {
+    pollinationsStatusCache.available = false;
+    pollinationsStatusCache.lastChecked = now;
+    return false;
+  }
+};
+
+const getConfiguredModels = async () => {
+  // Check pollinations dynamically
+  const isPollinationsAvailable = await checkPollinationsAvailability();
+
   return IMAGE_MODELS.map(model => {
     let configured = true;
     let available = true;
@@ -80,6 +117,19 @@ const getConfiguredModels = () => {
          // Google API has a strict 0 limit in the current tier
          available = false;
          reason = 'Quota Exceeded / Free Tier Blocked';
+      }
+      
+      if (model.provider === 'pollinations') {
+        if (!isPollinationsAvailable) {
+          available = false;
+          reason = 'Free generation temporarily unavailable';
+        }
+      }
+      
+      // Force non-implemented paid models to be unavailable even if key exists
+      if (['openai', 'flux', 'recraft'].includes(model.provider) && configured) {
+        available = false;
+        reason = 'Model logic not implemented';
       }
     }
 
@@ -107,8 +157,8 @@ const routeGeneration = async ({ prompt, referenceAsset, model, count, settings 
     }
   }
 
-  // Check availability
-  const modelsConf = getConfiguredModels();
+  // Check availability dynamically
+  const modelsConf = await getConfiguredModels();
   const currentStatus = modelsConf.find(m => m.id === modelConfig.id);
   
   if (!currentStatus.configured) {

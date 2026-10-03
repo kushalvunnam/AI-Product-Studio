@@ -14,7 +14,7 @@ const generateCampaignVariations = async (req, res) => {
     
     // Synchronous validation of model availability
     const resolvedModelId = model?.id || 'auto';
-    const availableModels = getConfiguredModels();
+    const availableModels = await getConfiguredModels();
     const modelConfig = availableModels.find(m => m.id === resolvedModelId) || availableModels.find(m => m.id === 'auto');
     
     if (!modelConfig || !modelConfig.available) {
