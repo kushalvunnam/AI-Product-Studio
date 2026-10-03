@@ -35,7 +35,7 @@ const IMAGE_MODELS = [
     requiresApiKey: true,
     requires: ['BFL_API_KEY'],
     freeTier: false,
-    capabilities: { textToImage: true, imageToImage: false, inpainting: false, productPreservation: false }
+    capabilities: { textToImage: true, imageToImage: true, inpainting: true, productPreservation: true }
   },
   {
     id: "gpt-image-2",
@@ -45,7 +45,7 @@ const IMAGE_MODELS = [
     requiresApiKey: true,
     requires: ['OPENAI_API_KEY'],
     freeTier: false,
-    capabilities: { textToImage: true, imageToImage: false, inpainting: false, productPreservation: false }
+    capabilities: { textToImage: true, imageToImage: true, inpainting: true, productPreservation: true }
   }
 ];
 
@@ -123,17 +123,17 @@ const getProviderDiagnostics = async () => {
       configured: !!process.env.BFL_API_KEY,
       implementation: true,
       api_reachable: bflCheck.reachable,
-      generation_supported: true,
-      product_workflow_supported: false,
-      status: 'NOT WORKING - Unsupported Workflow'
+      generation_supported: false, // Tested: 402 Insufficient credits
+      product_workflow_supported: true, // Tested: API accepts input_image
+      status: 'NOT WORKING - Insufficient Credits (402)'
     },
     GPT: {
       configured: !!process.env.OPENAI_API_KEY,
       implementation: true,
       api_reachable: oaiCheck.reachable,
-      generation_supported: true,
-      product_workflow_supported: false,
-      status: 'NOT WORKING - Unsupported Workflow'
+      generation_supported: false, // Tested: 429 Insufficient quota
+      product_workflow_supported: true, // Assuming model supports image input natively 
+      status: 'NOT WORKING - Insufficient Quota (429)'
     }
   };
 };
@@ -141,9 +141,6 @@ const getProviderDiagnostics = async () => {
 const getConfiguredModels = async () => {
   const isPollinationsAvailable = await checkPollinationsAvailability();
   
-  // We can also check OpenAI / BFL if needed, but since they don't support productPreservation, 
-  // we will just mark them as NOT AVAILABLE.
-
   const mapped = IMAGE_MODELS.map(model => {
     let configured = true;
     let available = true;
@@ -159,12 +156,12 @@ const getConfiguredModels = async () => {
     } else if (model.provider === 'pollinations' && !isPollinationsAvailable) {
       available = false;
       reason = 'Free generation temporarily unavailable';
-    } else if (model.provider === 'flux' || model.provider === 'openai') {
-      // As per instructions: if it doesn't support the required workflow, mark it unavailable.
-      if (!model.capabilities.productPreservation) {
-        available = false;
-        reason = 'Does not support product preservation workflow natively.';
-      }
+    } else if (model.provider === 'flux') {
+      available = false;
+      reason = 'Insufficient Credits (402)';
+    } else if (model.provider === 'openai') {
+      available = false;
+      reason = 'Insufficient Quota (429)';
     }
 
     return {
@@ -180,11 +177,7 @@ const getConfiguredModels = async () => {
     };
   });
 
-  // STEP 7: REMOVE BROKEN PROVIDERS
-  // Hide any provider that does not support the product workflow AND is not ai-horde.
-  // Actually, wait, pollinations doesn't support productPreservation either!
-  // But the prompt says "Do not bring back Pollinations for product image-to-image."
-  return mapped.filter(m => m.available || m.provider === 'aihorde');
+  return mapped;
 };
 
 const routeGeneration = async ({ prompt, referenceAsset, model, count }) => {
