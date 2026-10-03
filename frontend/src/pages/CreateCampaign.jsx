@@ -462,8 +462,8 @@ const CreateCampaign = () => {
           <div className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-primary -z-10 transition-all duration-500" style={{ width: `${((step - 1) / (steps.length - 1)) * 100}%` }}></div>
           {steps.map((s) => {
             const Icon = s.icon;
-            const isActive = s.num === ste;
-            const isCompleted = s.num < ste;
+            const isActive = s.num === step;
+            const isCompleted = s.num < step;
             return (
               <div key={s.num} className="flex flex-col items-center gap-2 relative z-10">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors duration-300 ${isActive ? 'bg-primary text-[#101828] ring-4 ring-primary-500/20' : isCompleted ? 'bg-primary text-slate-950 shadow-md' : 'bg-slate-50Highlight text-[#52627A] border border-slate-200'}`}>
