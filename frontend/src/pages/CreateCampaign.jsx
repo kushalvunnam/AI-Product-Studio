@@ -411,7 +411,7 @@ const CreateCampaign = () => {
                           <label key={model.id} className={`flex items-start p-3 rounded-lg border transition-colors ${!model.available ? 'opacity-60 cursor-not-allowed bg-slate-50' : 'cursor-pointer'} ${modelSettings.id === model.id ? 'bg-primary/10 border-primary/50 shadow-md' : (!model.available ? 'border-slate-200' : 'bg-white shadow-sm border-slate-200 hover:border-slate-500')}`}>
                             <input type="radio" name="model" value={model.id} checked={modelSettings.id === model.id} onChange={() => setModelSettings(prev => ({...prev, id: model.id, mode: model.id === 'auto' ? 'auto' : 'specific'}))} disabled={!model.available} className="mt-0.5 w-4 h-4 text-primary-600 focus:ring-primary-500 bg-slate-100 border-slate-200" />
                             <div className="ml-3 flex flex-col">
-                              <div className="flex items-center gap-2"><span className={`text-sm font-bold ${modelSettings.id === model.id ? 'text-primary' : 'text-[#172033]'}`}>{model.label}</span>{!model.available && <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-medium" title={model.description}>🔒 Not Configured</span>}</div><span className="text-xs text-[#6B7A90] mt-0.5">{model.description}</span>
+                              <div className="flex items-center gap-2"><span className={`text-sm font-bold ${modelSettings.id === model.id ? 'text-primary' : 'text-[#172033]'}`}>{model.label}</span>{!model.available ? <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-medium" title={model.description}>🔒 Not configured</span> : (model.freeTier && model.id !== 'auto' ? <span className="text-[10px] bg-green-100 text-green-700 border border-green-200 px-2 py-0.5 rounded-full font-bold">FREE Available</span> : null)}</div><span className="text-xs text-[#6B7A90] mt-0.5">{model.description}</span>
                             </div>
                           </label>
                         ))}
@@ -432,7 +432,7 @@ const CreateCampaign = () => {
 
         {step === 4 && (
           <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
-            <h2 className="text-xl font-bold text-[#101828] flex items-center gap-2"><Layers className="w-5 h-5 text-primary" /> Cloudinary AI Generation</h2>
+            <div className="flex flex-col"><h2 className="text-xl font-bold text-[#101828] flex items-center gap-2"><Layers className="w-5 h-5 text-primary" /> AI Image Generation</h2><span className="text-sm text-slate-500 mt-1">Powered by {modelSettings.id === 'auto' ? 'Cloudinary' : (availableModels.find(m => m.id === modelSettings.id)?.provider === 'pollinations' ? 'Pollinations.ai (Free Open AI)' : (availableModels.find(m => m.id === modelSettings.id)?.provider || 'AI'))}</span></div>
             
             {generationError && (
   <div className="bg-red-500/10 border border-red-500 rounded-xl p-6 text-red-500 mb-8 flex flex-col items-center text-center">
