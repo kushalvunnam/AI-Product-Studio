@@ -4,7 +4,7 @@ const { routeGeneration, getConfiguredModels } = require('../services/generation
 const getModels = async (req, res) => {
   try {
     const models = await getConfiguredModels();
-    return res.status(200).json({ success: true, models });
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate'); res.setHeader('Pragma', 'no-cache'); res.setHeader('Expires', '0'); res.setHeader('Surrogate-Control', 'no-store'); return res.status(200).json({ success: true, models });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Failed to fetch models' });
   }

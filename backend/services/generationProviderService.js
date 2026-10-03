@@ -10,16 +10,6 @@ const fetch = global.fetch;
 
 const IMAGE_MODELS = [
   {
-    id: "free-pollinations",
-    label: "Open Source Free",
-    provider: "pollinations",
-    description: "Free public image generation",
-    requiresApiKey: false,
-    requires: [],
-    freeTier: true,
-    capabilities: { textToImage: true, imageToImage: false, inpainting: false, productPreservation: false }
-  },
-  {
     id: "free-aihorde",
     label: "AI Horde — Free Image-to-Image",
     provider: "aihorde",
@@ -28,6 +18,16 @@ const IMAGE_MODELS = [
     requires: [],
     freeTier: true,
     capabilities: { textToImage: true, imageToImage: true, inpainting: true, productPreservation: true }
+  },
+  {
+    id: "free-pollinations",
+    label: "Open Source Free",
+    provider: "pollinations",
+    description: "Free public image generation",
+    requiresApiKey: false,
+    requires: [],
+    freeTier: true,
+    capabilities: { textToImage: true, imageToImage: false, inpainting: false, productPreservation: false }
   },
   {
     id: "auto",
