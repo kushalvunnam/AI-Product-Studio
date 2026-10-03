@@ -274,7 +274,7 @@ const CreateCampaign = () => {
         setGenerationStatus(prev => ({ ...prev, message: 'AI generation started' }));
         
         let pollCount = 0;
-        const maxPolls = 45; // 45 * 2s = 90 seconds timeout
+        const maxPolls = 180; // 180 * 2s = 360 seconds timeout (AI Horde can take up to 5 mins)
         
         if (pollingRef.current) clearInterval(pollingRef.current);
         
