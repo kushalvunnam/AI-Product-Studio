@@ -4,6 +4,37 @@ require('dotenv').config();
 const genAI = new GoogleGenerativeAI(process.env.AI_API_KEY || '');
 
 /**
+ * Robustly extract JSON from AI response
+ */
+function parseAIJson(responseText) {
+  if (!responseText) throw new SyntaxError("Empty response");
+  
+  // 1. Try raw parse
+  try {
+    return JSON.parse(responseText);
+  } catch (e) {}
+
+  // 2. Try markdown extraction
+  const match = responseText.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  if (match && match[1]) {
+    try {
+      return JSON.parse(match[1]);
+    } catch (e) {}
+  }
+
+  // 3. Try bracket extraction
+  const firstBrace = responseText.indexOf('{');
+  const lastBrace = responseText.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    try {
+      return JSON.parse(responseText.slice(firstBrace, lastBrace + 1));
+    } catch (e) {}
+  }
+
+  throw new SyntaxError("Could not parse JSON from response");
+}
+
+/**
  * Fetch image from URL and convert to generative AI part
  */
 async function urlToGenerativePart(imageUrl) {
@@ -91,7 +122,12 @@ If a field cannot be reliably determined from the image, use "unknown" or an emp
       while (attempts < maxAttempts) {
         attempts++;
         try {
-          const model = genAI.getGenerativeModel({ model: currentModelName });
+          const model = genAI.getGenerativeModel({ 
+            model: currentModelName,
+            generationConfig: {
+              responseMimeType: "application/json"
+            }
+          });
           result = await model.generateContent([prompt, imagePart]);
           if (attempts > 1) {
             console.log(`Gemini request succeeded on attempt ${attempts} using ${currentModelName}`);
@@ -122,10 +158,7 @@ If a field cannot be reliably determined from the image, use "unknown" or an emp
       responseText = result.response.text();
     }
     
-    // Clean up response if model included markdown
-    const cleanedText = responseText.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim();
-    
-    const analysis = JSON.parse(cleanedText);
+    const analysis = parseAIJson(responseText);
     
     // Validate output roughly
     return {
