@@ -198,12 +198,7 @@ const CreateCampaign = () => {
         pollingRef.current = setInterval(async () => {
           try {
             attempts++;
-            if (attempts > 30) {
-              clearInterval(pollingRef.current);
-              setGenerationError('Generation timed out. Please try again.');
-              setIsGenerating(false);
-              return;
-            }
+            if (attempts > 40) { clearInterval(pollingRef.current); setGenerationError('AI Horde is currently busy. Please retry in a moment.'); setIsGenerating(false); return; }
             
             const statusData = await getGenerationStatus(result.jobId);
             const { mappedStatus, completed, total, variations, error } = statusData;
@@ -237,7 +232,7 @@ const CreateCampaign = () => {
           } catch (pollErr) {
             console.error('Polling error:', pollErr);
           }
-        }, 2000);
+        }, 3000);
       }
     } catch (err) {
       setGenerationError(err.message || 'Generation failed.');

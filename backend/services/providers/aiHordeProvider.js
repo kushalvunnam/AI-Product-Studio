@@ -30,23 +30,22 @@ const submitHordeJob = async ({ prompt, referenceAsset, count }) => {
       };
     }
 
+    const apikey = process.env.AI_HORDE_API_KEY;
+    if (!apikey) {
+      throw new Error("AI Horde API key is missing. Please configure AI_HORDE_API_KEY.");
+    }
+
     const sourceData = await getBase64FromUrl(referenceAsset.secureUrl);
     if (!sourceData.base64 || sourceData.size === 0) {
-      throw { code: 'SOURCE_IMAGE_INVALID', message: `Invalid source image. Size: ${sourceData.size}, Status: ${sourceData.status}, Type: ${sourceData.contentType}` };
+      throw { code: 'SOURCE_IMAGE_INVALID', message: `Invalid source image.` };
     }
     
     const maskData = await getBase64FromUrl(referenceAsset.mask.secureUrl);
     if (!maskData.base64 || maskData.size === 0) {
-      throw { code: 'SOURCE_MASK_INVALID', message: `Invalid mask image. Size: ${maskData.size}, Status: ${maskData.status}, Type: ${maskData.contentType}` };
+      throw { code: 'SOURCE_MASK_INVALID', message: `Invalid mask image.` };
     }
 
-    console.log('[AI HORDE] MASK_FILE_SIZE', maskData.size);
-    // Calculated correctly in frontend component (`alpha > 128 -> BLACK(0,0,0) [preserve], alpha <= 128 -> WHITE(255) [edit]`)
-    console.log('[AI HORDE] BLACK_PIXEL_PERCENTAGE', 'calculated_in_frontend');
-    console.log('[AI HORDE] WHITE_PIXEL_PERCENTAGE', 'calculated_in_frontend');
-
-    // Using an explicit inpainting model solves the NoAvailableWorker hang that occurs if you use 'stable_diffusion'
-    const models = ["Realistic Vision Inpainting", "DreamShaper Inpainting", "Anything Diffusion Inpainting"];
+    const models = ["Deliberate Inpainting"];
 
     const payload = {
       prompt: `${prompt}, photorealistic, high quality, 8k, highly detailed`,
@@ -54,11 +53,11 @@ const submitHordeJob = async ({ prompt, referenceAsset, count }) => {
         sampler_name: "k_euler_a",
         cfg_scale: 7,
         denoising_strength: 0.9,
-        steps: 30,
+        steps: 20,
         width: 512,
         height: 512,
         karras: true,
-        n: 1 // Test with 1 variation first to ensure robustness
+        n: 1
       },
       nsfw: false,
       censor_nsfw: true,
@@ -68,35 +67,29 @@ const submitHordeJob = async ({ prompt, referenceAsset, count }) => {
       source_mask: maskData.base64
     };
 
-    console.log('[AI HORDE] model', payload.models);
-    console.log('[AI HORDE] source_processing', payload.source_processing);
-    console.log('[AI HORDE] source image present', !!payload.source_image);
-    console.log('[AI HORDE] source image size', sourceData.size);
-    console.log('[AI HORDE] source mask present', !!payload.source_mask);
-    console.log('[AI HORDE] source mask size', maskData.size);
-    console.log('[AI HORDE] width', payload.params.width);
-    console.log('[AI HORDE] height', payload.params.height);
-    console.log('[AI HORDE] steps', payload.params.steps);
-    console.log('[AI HORDE] sampler', payload.params.sampler_name);
+    console.log('[AI HORDE] submitting with API KEY configured:', !!apikey);
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
 
     const submitRes = await fetch('https://stablehorde.net/api/v2/generate/async', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': '0000000000'
+        'apikey': apikey
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: controller.signal
     });
+    
+    clearTimeout(timeout);
 
-    console.log('[AI HORDE] request status', submitRes.status);
     const submitData = await submitRes.json();
-    console.log('[AI HORDE] request ID', submitData.id);
-    console.log('[AI HORDE] warnings', submitData.warnings || []);
 
     if (submitData.warnings && submitData.warnings.length > 0) {
       const w = submitData.warnings[0];
       if (w.code === 'NoAvailableWorker') {
-        throw new Error(`AI Horde Warning: ${w.message} - Please try again later or use a different model.`);
+        throw new Error(`AI Horde Warning: ${w.message} - Please try again later.`);
       }
     }
 
@@ -116,6 +109,9 @@ const submitHordeJob = async ({ prompt, referenceAsset, count }) => {
     };
   } catch (error) {
     console.error('AI Horde submission failed:', error);
+    if (error.name === 'AbortError') {
+      throw { code: 'TIMEOUT', provider: 'aihorde', message: 'Submission to AI Horde timed out after 30 seconds.' };
+    }
     throw {
       code: error.code || 'GENERATION_ERROR',
       provider: 'aihorde',
@@ -159,7 +155,7 @@ const checkHordeJob = async (jobId) => {
           assetId: uploadResult.asset_id
         };
       } catch (uploadErr) {
-        return { status: 'failed', error: 'AIHORDE_SUCCESS_CLOUDINARY_UPLOAD_FAILED: Cloudinary upload failed after generation.' };
+        return { status: 'failed', error: 'Cloudinary upload failed after generation.' };
       }
     }
 
