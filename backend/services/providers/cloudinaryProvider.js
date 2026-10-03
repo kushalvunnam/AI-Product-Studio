@@ -40,14 +40,14 @@ const generateImageWithRetry = async (payload, authHeader, modelContext, maxRetr
       const cloudinaryErrorCode = errorData.error?.code || 'UNKNOWN';
       const cloudinaryErrorMsg = errorData.error?.message || `HTTP ${response.status}`;
 
-      // Log safely
-      console.error('--- CLOUDINARY API ERROR ---');
-      console.error(`HTTP status: ${response.status}`);
-      console.error(`Cloudinary error code: ${cloudinaryErrorCode}`);
-      console.error(`Cloudinary error message: ${cloudinaryErrorMsg}`);
-      console.error(`Selected model: ${modelContext.resolvedModel}`);
-      console.error(`Attempt: ${attempt}/${maxRetries}`);
-      console.error('----------------------------');
+      if (process.env.NODE_ENV === 'development' || true) {
+        console.error('[CLOUDINARY] provider: cloudinary');
+        console.error(`[CLOUDINARY] model: ${modelContext.resolvedModel}`);
+        console.error('[CLOUDINARY] operation: image_to_image');
+        console.error(`[CLOUDINARY] HTTP status: ${response.status}`);
+        console.error(`[CLOUDINARY] error code: ${cloudinaryErrorCode}`);
+        console.error(`[CLOUDINARY] error message: ${cloudinaryErrorMsg}`);
+      }
 
       const isRateLimit = response.status === 429 || cloudinaryErrorMsg.toLowerCase().includes('rate limit');
       const isTransient = isRateLimit || (response.status >= 500 && response.status < 600);
@@ -55,7 +55,6 @@ const generateImageWithRetry = async (payload, authHeader, modelContext, maxRetr
       const errorStrLower = cloudinaryErrorMsg.toLowerCase();
       const codeStrLower = String(cloudinaryErrorCode).toLowerCase();
 
-      // Check specific error messages requested by user
       if (
         response.status === 400 && 
         (errorStrLower.includes('unsupported') || errorStrLower.includes('invalid') || errorStrLower.includes('not support') || codeStrLower.includes('invalid_model'))
@@ -64,10 +63,10 @@ const generateImageWithRetry = async (payload, authHeader, modelContext, maxRetr
       }
 
       if (
-        response.status === 401 || response.status === 403 || 
-        errorStrLower.includes('plan') || errorStrLower.includes('credit') || errorStrLower.includes('allow')
+        response.status === 401 || response.status === 403 || response.status === 400 && (errorStrLower.includes('plan') || errorStrLower.includes('credit') || errorStrLower.includes('allow') || errorStrLower.includes('access')) ||
+        errorStrLower.includes('plan') || errorStrLower.includes('credit') || errorStrLower.includes('allow') || errorStrLower.includes('access')
       ) {
-        throw new Error('Cloudinary does not currently allow this model for this account.');
+        throw { code: 'CLOUDINARY_MODEL_NOT_AVAILABLE', message: 'The selected Cloudinary AI model is not available for this account.' };
       }
 
       if (!isTransient || attempt === maxRetries) {

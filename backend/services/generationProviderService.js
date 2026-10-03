@@ -208,9 +208,9 @@ const routeGeneration = async ({ prompt, referenceAsset, model, count, settings 
         return await cloudinaryGenerate({ prompt, referenceAsset, model: { id: modelConfig.id, mode: modelConfig.id === 'auto' ? 'auto' : 'specific' }, settings });
       } catch (err) {
         throw {
-          code: err.message.includes('allow this model') ? 'MODEL_NOT_AVAILABLE' : 
-                err.message.includes('timeout') ? 'TIMEOUT' :
-                err.message.includes('rate limit') ? 'RATE_LIMITED' : 'GENERATION_ERROR',
+          code: err.code || (err.message && err.message.includes('allow this model') ? 'MODEL_NOT_AVAILABLE' : 
+                err.message && err.message.includes('timeout') ? 'TIMEOUT' :
+                err.message && err.message.includes('rate limit') ? 'RATE_LIMITED' : 'GENERATION_ERROR'),
           provider: 'cloudinary',
           model: modelConfig.id,
           message: err.message
