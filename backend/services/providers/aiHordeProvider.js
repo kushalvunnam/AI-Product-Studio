@@ -1,5 +1,5 @@
 const cloudinary = require('cloudinary').v2;
-const fetch = global.fetch;
+const fetch = global.fetch || require('node-fetch');
 
 const getBase64FromUrl = async (url) => {
   const response = await fetch(url);

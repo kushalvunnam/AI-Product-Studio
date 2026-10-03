@@ -1,4 +1,4 @@
-const fetch = global.fetch;
+const fetch = global.fetch || require('node-fetch');
 
 const submitFluxJob = async ({ prompt, referenceAsset, count }) => {
   // Convert URL to base64 if needed, but BFL supports base64

@@ -1,4 +1,4 @@
-const fetch = global.fetch;
+const fetch = global.fetch || require('node-fetch');
 
 const generateOpenAIImage = async ({ prompt, referenceAsset }) => {
   const response = await fetch('https://api.openai.com/v1/images/generations', {

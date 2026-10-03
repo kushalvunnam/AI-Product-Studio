@@ -1,4 +1,4 @@
-const fetch = global.fetch;
+const fetch = global.fetch || require('node-fetch');
 const cloudinary = require('cloudinary').v2;
 
 const generateImage = async ({ prompt, referenceAsset, model }) => {
