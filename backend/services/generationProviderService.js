@@ -1,4 +1,5 @@
 const { generateImage: cloudinaryGenerate } = require('./cloudinaryGenerationService');
+const { generateImageWithGoogle } = require('./googleGenerationService');
 
 const IMAGE_MODELS = [
   {
@@ -91,7 +92,7 @@ const routeGeneration = async ({ prompt, referenceAsset, model, count, settings 
       }
     
     case 'google':
-      throw { code: "NOT_IMPLEMENTED", provider: "google", message: "Google image generation logic is not yet implemented." };
+      return await generateImageWithGoogle(referenceAsset.url, prompt, modelConfig.id, count || 1);
       
     case 'flux':
       throw { code: "NOT_IMPLEMENTED", provider: "flux", message: "FLUX image generation logic is not yet implemented." };
