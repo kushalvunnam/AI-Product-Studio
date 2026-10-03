@@ -1,7 +1,8 @@
-const { submitHordeJob, checkHordeJob } = require('./backend/services/providers/aiHordeProvider.js');
+require('dotenv').config({ path: '.env' });
+const { submitHordeJob, checkHordeJob } = require('./services/providers/aiHordeProvider.js');
 async function run() {
   try {
-    console.log('Starting AI Horde End-to-End Test...');
+    console.log('Starting AI Horde End-to-End Test (with Cloudinary)...');
     const job = await submitHordeJob({
       prompt: 'A blue square product, photorealistic',
       referenceAsset: {
@@ -14,7 +15,7 @@ async function run() {
     let done = false;
     let checks = 0;
     let finalState = null;
-    while(!done && checks < 60) {
+    while(!done && checks < 10) { 
       await new Promise(r => setTimeout(r, 10000));
       checks++;
       const res = await checkHordeJob(job.providerJobId);

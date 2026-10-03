@@ -2,8 +2,12 @@ const cloudinary = require('cloudinary').v2;
 const fetch = global.fetch || require('node-fetch');
 
 const getBase64FromUrl = async (url) => {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`Failed to fetch image from ${url}`);
+  let fetchUrl = url;
+  if (url && url.includes('cloudinary.com') && url.includes('/upload/')) {
+    fetchUrl = url.replace('/upload/', '/upload/c_limit,w_1024,h_1024/');
+  }
+  const response = await fetch(fetchUrl);
+  if (!response.ok) throw new Error(`Failed to fetch image from ${fetchUrl}`);
   const contentType = response.headers.get('content-type');
   const buffer = await response.arrayBuffer();
   const buff = Buffer.from(buffer);
